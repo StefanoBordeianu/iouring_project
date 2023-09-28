@@ -11,7 +11,7 @@ int init(){
     int socketfd;
     long bytes_sent, rec;
     struct sockaddr_in add;
-    char* buff = "Peepo im here\n";
+    char* buff = "Hello Server! Im the client!\n";
     char rec_buff[50];
 
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -44,7 +44,7 @@ int init(){
         printf("CLIENT: Error while receiving, ERROR=%d\n",error);
         return -1;
     }
-    printf("CLIENT: string received: %s\n",buff);
+    printf("CLIENT: string received: %s\n",rec_buff);
 
     close(socketfd);
 
