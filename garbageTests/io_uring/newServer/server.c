@@ -110,6 +110,7 @@ void startServer(int socketfd){
                 break;
             case EVENT_TYPE_SEND:
                 printf("received send\n");
+                add_recv_request(req->socket,1024);
                 free(req);
                 break;
 
