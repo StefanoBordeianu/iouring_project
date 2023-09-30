@@ -86,13 +86,13 @@ int add_send_request(int socket, char* toSend){
 void startServer(int socketfd){
     struct sockaddr_in clientaddr;
     socklen_t addlen = sizeof(clientaddr);
-    char* toSend = "Server says hi!\n";
+    char* toSend = "Server says hi!";
 
     add_accept_request(socketfd,&clientaddr,&addlen);
     printf("Entering server loop\n");
     while(1){
         struct io_uring_cqe* cqe;
-        int ret = io_uring_wait_cqe(&ring, &cqe);
+        io_uring_wait_cqe(&ring, &cqe);
         struct request* req = io_uring_cqe_get_data(cqe);
 
         switch (req->type) {
@@ -109,7 +109,7 @@ void startServer(int socketfd){
                 free(req);
                 break;
             case EVENT_TYPE_SEND:
-                printf("received send\n");
+                printf("sent a packet!\n");
                 add_recv_request(req->socket,1024);
                 free(req);
                 break;
