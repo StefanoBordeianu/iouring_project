@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netinet/tcp.h>
 
 #define EVENT_TYPE_ACCEPT 0
 #define EVENT_TYPE_RECV 1
@@ -14,7 +15,6 @@ struct io_uring ring;
 
 struct request{
     int type;
-    int socket;
     char* buff;
 };
 
@@ -23,7 +23,7 @@ int openListeningSocket(int port){
     int opt = 1;
     struct sockaddr_in add;
 
-    socketfd = socket(AF_INET, SOCK_STREAM, 0);
+    socketfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(socketfd < 0){
         printf("SERVER: Error while creating the socket\n");
         exit(-1);
@@ -40,22 +40,7 @@ int openListeningSocket(int port){
         perror("bind()");
         exit(-1);
     }
-    if(listen(socketfd, 2) < 0){
-        perror("listen()");
-        exit(-1);
-    }
     return socketfd;
-}
-
-int add_accept_request(int socketfd, struct sockaddr_in* addr, socklen_t* len){
-    struct io_uring_sqe* sqe;
-    sqe = io_uring_get_sqe(&ring);
-    struct request* req = malloc(sizeof(struct request));
-    req->type = EVENT_TYPE_ACCEPT;
-    io_uring_prep_accept(sqe,socketfd,(struct sockaddr*) addr,len,0);
-    io_uring_sqe_set_data(sqe, req);
-    io_uring_submit(&ring);
-    return 1;
 }
 
 int add_recv_request(int socket, long readlength){
@@ -63,7 +48,6 @@ int add_recv_request(int socket, long readlength){
     struct request* req = malloc(sizeof(struct request));
     sqe = io_uring_get_sqe(&ring);
     req->buff = malloc(readlength);
-    req->socket = socket;
     req->type = EVENT_TYPE_RECV;
     memset(req->buff, 0, readlength);
     io_uring_prep_recv(sqe,socket,req->buff,readlength,0);
@@ -76,7 +60,6 @@ int add_send_request(int socket, char* toSend){
     struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
     struct request* req = malloc(sizeof(struct request));
     req->type = EVENT_TYPE_SEND;
-    req->socket = socket;
     io_uring_prep_send(sqe, socket, toSend, strlen(toSend),0);
     io_uring_sqe_set_data(sqe, req);
     io_uring_submit(&ring);
@@ -88,29 +71,22 @@ void startServer(int socketfd){
     socklen_t addlen = sizeof(clientaddr);
     char* toSend = "Server says hi!";
 
-    add_accept_request(socketfd,&clientaddr,&addlen);
+    add_recv_request(socketfd,1024);
     printf("Entering server loop\n");
     while(1){
         struct io_uring_cqe* cqe;
         io_uring_wait_cqe(&ring, &cqe);
         struct request* req = io_uring_cqe_get_data(cqe);
-
         switch (req->type) {
-            case EVENT_TYPE_ACCEPT:
-                printf("received accept request\n");
-                add_accept_request(socketfd, &clientaddr, &addlen);
-                add_recv_request(cqe->res,1024);
-                free(req);
-                break;
             case EVENT_TYPE_RECV:
-                printf("RECEIVED from socket %d: %s\n",req->socket,req->buff);
-                add_send_request(req->socket,toSend);
+                printf("RECEIVED from socket %d: %s\n",socketfd,req->buff);
+                add_send_request(socketfd,toSend);
                 free(req->buff);
                 free(req);
                 break;
             case EVENT_TYPE_SEND:
                 printf("sent a packet!\n");
-                add_recv_request(req->socket,1024);
+                add_recv_request(socketfd,1024);
                 free(req);
                 break;
 
@@ -130,3 +106,6 @@ int main(){
 
 
 }
+//
+// Created by ebpf on 01/10/23.
+//

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 
 
 #define EVENT_TYPE_ACCEPT 0
@@ -27,7 +28,7 @@ void fatal_error(char* error){
 }
 
 void createSocket(int argc, char* argv[]){
-    int port;
+    int port, opt=1;
     long bytes_sent, rec;
     struct sockaddr_in addr;
     char* ip;
@@ -53,8 +54,9 @@ void createSocket(int argc, char* argv[]){
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if(socketfd < 0)
         fatal_error("socket creation\n");
-    if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+    if(setsockopt(socketfd,SOL_SOCKET,TCP_NODELAY|SO_REUSEADDR|SO_REUSEPORT,
                   &opt,sizeof (opt)))
+        fatal_error("sockopt\n");
     if(connect(socketfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
         fatal_error("Connecting to socket\n");
 }
