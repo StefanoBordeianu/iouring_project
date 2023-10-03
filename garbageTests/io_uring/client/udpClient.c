@@ -70,7 +70,7 @@ int add_send_request(char* toSend){
     req->socket = socketfd;
     io_uring_prep_send(sqe, socketfd, toSend, strlen(toSend),0);
     io_uring_sqe_set_data(sqe, req);
-
+    io_uring_submit(&ring);
     return 1;
 }
 
@@ -100,17 +100,20 @@ void startSending(){
             sprintf(toSend, "Packet number: %d", i);
             add_send_request(toSend);
             add_recv_request(1024);
-            io_uring_submit(&ring);
+
         }
+//        for(int i=1; i<=packetsToSend; i++)
+//            add_recv_request(1024);
 
         for (int i=0; i<(2*packetsToSend); i++) {
             struct io_uring_cqe* cqe;
             //if(io_uring_peek_cqe(&ring, &cqe))
             //   break;
             io_uring_wait_cqe(&ring, &cqe);
-            struct request* req = (struct request*)cqe->user_data;
+            struct request* req = io_uring_cqe_get_data(cqe);
             if(req->type == EVENT_TYPE_RECV){
-                printf("received packet: %s\n",req->buff);
+                if(cqe->res>=0)
+                    printf("received %d bytes packet: %s\n",cqe->res,req->buff);
                 free(req->buff);
             }
             else
@@ -132,7 +135,7 @@ int main(int argc, char *argv[]){
 
     signal(SIGINT, sigint_handler);
     printf("Hello, im the client :D!\n");
-    io_uring_queue_init(32768,&ring,0);
+    io_uring_queue_init(1024,&ring,0);
     createSocket(argc, argv);
     startSending();
 }
