@@ -130,7 +130,7 @@ int main(int argc, char *argv[]){
 
     signal(SIGINT, sigint_handler);
     printf("Hello, im the client :D!\n");
-    io_uring_queue_init(1024,&ring,0);
+    io_uring_queue_init(32768,&ring,0);
     createSocket(argc, argv);
     startSending();
 }

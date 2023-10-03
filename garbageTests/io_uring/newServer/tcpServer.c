@@ -120,13 +120,16 @@ void startServer(int socketfd){
     }
 }
 
-int main(){
+int main(int argc, char *argv[]){
     int socketfd;
-    int port;
+    int port = 8080;
+
+    if(argc == 2)
+        port= atoi(argv[1]);
 
     printf("Hello! Im the server!!\n");
-    io_uring_queue_init(1024,&ring,0);
-    socketfd = openListeningSocket(8080);
+    io_uring_queue_init(32768,&ring,0);
+    socketfd = openListeningSocket(port);
     startServer(socketfd);
 
 
