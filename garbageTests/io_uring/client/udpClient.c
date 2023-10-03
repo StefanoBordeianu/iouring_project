@@ -90,7 +90,7 @@ void startSending(){
         int packetsToSend;
         printf("How many packets do you wanna send?\n");
         scanf("%d",&packetsToSend);
-        for(int i=0; i<packetsToSend; i++){
+        for(int i=1; i<=packetsToSend; i++){
             char toSend [50];
             sprintf(toSend, "Packet number: %d", i);
             add_send_request(toSend);
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]){
 
     signal(SIGINT, sigint_handler);
     printf("Hello, im the client :D!\n");
-    io_uring_queue_init(1024,&ring,0);
+    io_uring_queue_init(32768,&ring,0);
     createSocket(argc, argv);
     startSending();
 }

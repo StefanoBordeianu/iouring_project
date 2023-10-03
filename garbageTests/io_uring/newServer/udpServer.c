@@ -53,52 +53,46 @@ int openListeningSocket(int port){
 int add_recv_request(int socket, long readlength){
     struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);;
     struct request* req = malloc(sizeof(struct request));
-    struct sockaddr_in client_address;
-    char buffer [readlength];
-    struct msghdr msg;
-    struct iovec iov[1];
+    struct sockaddr_in* client_address = malloc(sizeof(struct sockaddr_in));
+    struct msghdr* msg = malloc(sizeof(struct msghdr));
+    struct iovec* iov = malloc(sizeof(struct iovec));
 
-    printf("1\n");
-    memset(&msg, 0, sizeof(msg));
-    memset(&iov,0,sizeof(iov));
-    printf("2\n");
-    iov[0].iov_base = buffer;
-    iov[0].iov_len = sizeof(buffer);
-    printf("3\n");
-    msg.msg_name = &client_address;
-    msg.msg_namelen = (socklen_t) sizeof(client_address);
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
-    printf("4\n");
+    memset(msg, 0, sizeof(struct msghdr));
+    memset(iov,0,sizeof(struct iovec));
+    iov->iov_base = malloc(readlength);
+    iov->iov_len = readlength;
+    msg->msg_name = client_address;
+    msg->msg_namelen = sizeof(struct sockaddr_in);
+    msg->msg_iov = iov;
+    msg->msg_iovlen = 1;
 
     req->type = EVENT_TYPE_RECV;
-    req->message = &msg;
-    io_uring_prep_recvmsg(sqe,socket, &msg,0);
+    req->message = msg;
+    io_uring_prep_recvmsg(sqe,socket, msg,0);
     io_uring_sqe_set_data(sqe, req);
     io_uring_submit(&ring);
-    printf("5\n");
     return 1;
 }
 
 int add_send_request(int socket, char* toSend, struct sockaddr_in* client_addr){
     struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
     struct request* req = malloc(sizeof(struct request));
-    struct msghdr msg;
+    struct msghdr* msg = malloc(sizeof(struct msghdr));
     struct iovec iov[1];
     struct sockaddr_in client_address = *client_addr;
 
-    memset(&msg, 0, sizeof(msg));
+    memset(msg, 0, sizeof(struct msghdr));
     memset(&iov,0,sizeof(iov));
     iov[0].iov_base = toSend;
-    iov[0].iov_len = strlen(toSend);
-    msg.msg_name = &client_address;
-    msg.msg_namelen = sizeof(client_address);
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
+    iov[0].iov_len = 50;
+    msg->msg_name = &client_address;
+    msg->msg_namelen = sizeof(client_address);
+    msg->msg_iov = iov;
+    msg->msg_iovlen = 1;
 
     req->type = EVENT_TYPE_SEND;
 
-    io_uring_prep_sendmsg(sqe, socket, &msg ,0);
+    io_uring_prep_sendmsg(sqe, socket, msg ,0);
     io_uring_sqe_set_data(sqe, req);
     io_uring_submit(&ring);
     return 1;
@@ -107,26 +101,24 @@ int add_send_request(int socket, char* toSend, struct sockaddr_in* client_addr){
 void startServer(int socketfd){
     char* toSend = "Server says hi!";
     char* msg_received;
+    struct io_uring_cqe* cqe;
     add_recv_request(socketfd,1024);
 
     printf("Entering server loop\n");
     while(1){
-        printf("6\n");
-        struct io_uring_cqe* cqe;
-        io_uring_wait_cqe(&ring, &cqe);
-        printf("7\n");
+        if(io_uring_wait_cqe(&ring, &cqe)){
+            printf("ERROR WAITING\n");
+            exit(-1);
+        }
         struct request* req = io_uring_cqe_get_data(cqe);
 
-        printf("8\n");
         switch (req->type) {
             case EVENT_TYPE_RECV:
-                printf("received 1\n");
-                //msg_received = (char*) req->message->msg_iov->iov_base;
-                //printf("RECEIVED from socket %d: %s\n",socketfd, msg_received);
+                msg_received = (char*) req->message->msg_iov->iov_base;
+                printf("RECEIVED from socket %d: %s\n",socketfd, msg_received);
                 add_send_request(socketfd,toSend,
                                  (struct sockaddr_in *) req->message->msg_name);
                 add_recv_request(socketfd,1024);
-                //free(req->message);
                 free(req);
                 break;
             case EVENT_TYPE_SEND:
@@ -144,7 +136,7 @@ int main(){
     int port;
 
     printf("Hello! Im the server!!\n");
-    io_uring_queue_init(1024,&ring,0);
+    io_uring_queue_init(32768,&ring,0);
     socketfd = openListeningSocket(8080);
     startServer(socketfd);
 
