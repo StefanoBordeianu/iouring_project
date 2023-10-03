@@ -38,6 +38,11 @@ void createSocket(int argc, char* argv[]){
         char* ip_temp = "127.0.0.1";
         ip = ip_temp;
     }
+    else if(argc == 2){
+        port = atoi(argv[1]);
+        char* ip_temp = "127.0.0.1";
+        ip = ip_temp;
+    }
     else if (argc==3){
         port = strtol(argv[2],NULL,10);
         ip = argv[1];
