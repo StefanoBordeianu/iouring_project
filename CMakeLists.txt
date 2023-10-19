@@ -12,5 +12,8 @@ add_executable(iouring_project
         garbageTests/io_uring/client/tcpClient.c
         garbageTests/io_uring/newServer/udpServer.c
         garbageTests/io_uring/client/udpClient.c
-        benchmarking/test/udpServer/updServer.c
+        benchmarking/test/udpServer/udpServer.c
+        benchmarking/test/udpServer/batchingUdpServer.c
+        benchmarking/test/udpServer/batchingUdpServer.c
+        benchmarking/test/udpServer/batchingUdpServer.c
 )
