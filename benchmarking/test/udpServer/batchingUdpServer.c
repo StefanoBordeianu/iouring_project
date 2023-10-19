@@ -81,7 +81,8 @@ void startServer(int socketfd){
     int start = 0;
     int requestsPending = 1;
 
-    add_recv_request(socketfd,1024);
+    for(int i=0;i<batchsize;i++)
+        add_recv_request(socketfd,1024);
     io_uring_submit(&ring);
 
     printf("Entering server loop\n");
