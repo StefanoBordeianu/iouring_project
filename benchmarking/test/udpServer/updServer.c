@@ -14,6 +14,7 @@
 
 struct io_uring ring;
 long packetsReceived;
+int duration = 5;
 
 struct request{
     int type;
@@ -95,7 +96,7 @@ void startServer(int socketfd){
                 //printf("RECEIVED from socket %d: %s\n",socketfd, msg_received);
                 if(!start){
                     start = 1;
-                    alarm(5);
+                    alarm(duration);
                 }
                 packetsReceived++;
                 add_recv_request(socketfd,1024);
@@ -108,10 +109,10 @@ void startServer(int socketfd){
 }
 
 void sig_handler(int signum){
-    printf("Number of packets received: %ld\n",packetsReceived);
-    long speed = packetsReceived/5;
-    printf("Speed: %ld\n", speed);
-    printf("Now closing\n");
+    printf("\nReceived: %ld packets\n",packetsReceived);
+    long speed = packetsReceived/duration;
+    printf("Speed: %ld packets/second\n", speed);
+    printf("Now closing\n\n");
     io_uring_queue_exit(&ring);
     exit(0);
 }
@@ -123,8 +124,11 @@ int main(int argc, char *argv[]){
     signal(SIGALRM,sig_handler);
 
     packetsReceived = 0;
-    if(argc == 2)
+    if(argc >= 2)
         port= atoi(argv[1]);
+
+    if(argc ==3)
+	duration = atoi(argv[2]);
 
     printf("Hello! Im the server!!\n");
     io_uring_queue_init(32768,&ring,0);
