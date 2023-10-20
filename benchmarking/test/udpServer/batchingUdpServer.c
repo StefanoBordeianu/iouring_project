@@ -114,7 +114,7 @@ void sig_handler(int signum){
 
     FILE* file;
     file = fopen("waitingMoreResults.txt","a");
-    fprintf(file, "Speed: %ld packets/second\n", speed);
+    fprintf(file, "BATCHSIZE %d        Speed: %ld packets/second\n", batchsize,speed);
     printf("Now closing\n\n");
     fclose(file);
     io_uring_queue_exit(&ring);
