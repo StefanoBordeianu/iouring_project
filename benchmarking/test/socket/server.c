@@ -60,6 +60,10 @@ void sig_handler(int signum){
     printf("\nReceived: %ld packets\n",packetsReceived);
     long speed = packetsReceived/duration;
     printf("Speed: %ld packets/second\n", speed);
+    FILE* file;
+    file = fopen("socketServerResults.txt","a");
+    fprintf(file, "Speed: %ld packets/second\n", speed);
+    fclose(file);
     printf("Now closing\n\n");
     exit(0);
 }
