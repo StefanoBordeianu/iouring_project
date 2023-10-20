@@ -80,7 +80,7 @@ void startServer(int socketfd){
     struct io_uring_cqe* cqe = malloc(sizeof(struct io_uring_cqe) * batchsize);
     int start = 0;
     int requestsPending = 1;
-    int received;
+    unsigned int received;
 
     for(int i=0;i<batchsize;i++)
         add_recv_request(socketfd,1024);
@@ -99,14 +99,9 @@ void startServer(int socketfd){
             start = 1;
             alarm(duration);
         }
-
         packetsReceived = packetsReceived + received;
-        requestsPending = requestsPending - received;
-        if (!requestsPending) {
-            requestsPending = batchsize;
-            for (int i = 0; i < batchsize; i++)
+            for (int i = 0; i < received; i++)
                 add_recv_request(socketfd, 1024);
-        }
         io_uring_submit(&ring);
 
         io_uring_cqe_seen(&ring, cqe);
