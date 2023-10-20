@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #define PORT 8080
 
@@ -64,6 +65,8 @@ void sig_handler(int signum){
 }
 
 int main(int argc, char *argv[]){
+
+    signal(SIGALRM,sig_handler);
 
     packetsReceived = 0;
     if(argc >= 2)
