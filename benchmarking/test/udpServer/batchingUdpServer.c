@@ -76,7 +76,7 @@ int add_recv_request(int socket, long readlength){
 }
 
 void startServer(int socketfd){
-    struct io_uring_cqe* cqe = malloc(sizeof(struct io_uring_cqe) * batchsize);
+    struct io_uring_cqe* cqe [batchsize];
     int start = 0;
     int requestsPending = 1;
     unsigned int received;
@@ -89,7 +89,7 @@ void startServer(int socketfd){
     printf("Entering server loop\n");
     while (1) {
         start:
-        received = io_uring_peek_batch_cqe(&ring, &cqe, batchsize);
+        received = io_uring_peek_batch_cqe(&ring, cqe, batchsize);
         if (!received) {
             goto start;
         }
@@ -99,11 +99,15 @@ void startServer(int socketfd){
             alarm(duration);
         }
         packetsReceived = packetsReceived + received;
-            for (int i = 0; i < received; i++)
-                add_recv_request(socketfd, 1024);
+        for (int i = 0; i < received; i++) {
+            add_recv_request(socketfd, 1024);
+            struct request* req = io_uring_cqe_get_data(cqe[i]);
+            freemsg(req->message);
+            free(req);
+            io_uring_cqe_seen(&ring, cqe[i]);
+        }
         io_uring_submit(&ring);
-
-        io_uring_cqe_seen(&ring, cqe);
+        
     }
 }
 
