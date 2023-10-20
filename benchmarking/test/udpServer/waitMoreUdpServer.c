@@ -73,42 +73,38 @@ int add_recv_request(int socket, long readlength){
     req->message = msg;
     io_uring_prep_recvmsg(sqe,socket, msg,0);
     io_uring_sqe_set_data(sqe, req);
+    io_uring_submit(&ring);
     return 1;
 }
 
 void startServer(int socketfd){
-    struct io_uring_cqe* cqe = malloc(sizeof(struct io_uring_cqe) * batchsize);
+    struct io_uring_cqe* cqe;
     int start = 0;
-    int requestsPending = 1;
-    int received;
 
-    for(int i=0;i<batchsize;i++)
-        add_recv_request(socketfd,1024);
-    requestsPending = batchsize;
-    io_uring_submit(&ring);
+    add_recv_request(socketfd,1024);
 
     printf("Entering server loop\n");
-    while (1) {
-        start:
-        received = io_uring_peek_batch_cqe(&ring, &cqe, batchsize);
-        if (!received) {
-            goto start;
+    while(1){
+        if(io_uring_wait_cqe(&ring, &cqe)){
+            printf("ERROR WAITING\n");
+            exit(-1);
         }
+        struct request* req = io_uring_cqe_get_data(cqe);
 
-        if (!start) {
-            start = 1;
-            alarm(duration);
+        switch (req->type) {
+            case EVENT_TYPE_RECV:
+                //msg_received = (char*) req->message->msg_iov->iov_base;
+                //printf("RECEIVED from socket %d: %s\n",socketfd, msg_received);
+                if(!start){
+                    start = 1;
+                    alarm(duration);
+                }
+                packetsReceived++;
+                add_recv_request(socketfd,1024);
+                freemsg(req->message);
+                free(req);
+                break;
         }
-
-        packetsReceived = packetsReceived + received;
-        requestsPending = requestsPending - received;
-        if (!requestsPending) {
-            requestsPending = batchsize;
-            for (int i = 0; i < batchsize; i++)
-                add_recv_request(socketfd, 1024);
-        }
-        io_uring_submit(&ring);
-        
         io_uring_cqe_seen(&ring, cqe);
     }
 }
@@ -133,7 +129,7 @@ int main(int argc, char *argv[]){
         port= atoi(argv[1]);
 
     if(argc >=3)
-	duration = atoi(argv[2]);
+        duration = atoi(argv[2]);
 
     if(argc ==4)
         batchsize = atoi(argv[3]);

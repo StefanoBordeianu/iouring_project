@@ -16,4 +16,5 @@ add_executable(iouring_project
         benchmarking/test/udpServer/batchingUdpServer.c
         benchmarking/test/udpServer/batchingUdpServer.c
         benchmarking/test/udpServer/batchingUdpServer.c
+        benchmarking/test/udpServer/waitMoreUdpServer.c
 )
