@@ -147,7 +147,6 @@ static int parse_args(int argc, char *argv[])
 	return 0;
 }
 
-#define PAYLOAD "hello world this is a message"
 #define PAYLOAD_SIZE (args.pkt_size-1)
 static int prepare_request(void *buf, int len)
 {
