@@ -147,7 +147,7 @@ static int parse_args(int argc, char *argv[])
 	return 0;
 }
 
-#define PAYLOAD_SIZE (args.pkt_size-1)
+#define PAYLOAD_SIZE (args.pkt_size)
 static int prepare_request(void *buf, int len)
 {
 	struct request *header = buf;
@@ -245,7 +245,8 @@ void *worker_entry(void *_arg)
 
 			if (poll_list[i].revents & POLLOUT) {
 				/* INFO("can write\n"); */
-				ret = sendto(fd, buf + wrk->written, wrk->remaining, 0,
+				memset(buf,0x41,BUFSIZE);
+				ret = sendto(fd, buf + wrk->written, args.pkt_size, 0,
 						(struct sockaddr *)&server_addr,
 						sizeof(server_addr));
 
