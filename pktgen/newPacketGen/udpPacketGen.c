@@ -46,7 +46,8 @@ int parseArgs(int argc, char* argv[]){
 
     int opt;
 
-    while((opt =getopt(argc,argv,"iprdst:")) != -1){
+    printf("parsing\n");
+    while((opt =getopt(argc,argv,"i:p:r:d:s:t:")) != -1){
         switch (opt) {
             case 'i':
                 args.ip = optarg;
@@ -71,6 +72,7 @@ int parseArgs(int argc, char* argv[]){
                 return 1;
         }
     }
+    printf("finished parsing\n");
     printf("Sending for %d sec.    TO %s:%d\n", args.duration,
            args.ip, args.port);
     return 0;
@@ -113,6 +115,7 @@ void* startThread(void* _arg){
 
     start_t = clock();
     int sent = 0;
+    printf("startSending\n");
     while(wrk->active){
         if(sent >= per_thread_rate){
             end_t = clock();
@@ -134,6 +137,8 @@ void* startThread(void* _arg){
         ret = sendto(socketfd,buffer,args.pktSize,0,
                      (struct sockaddr *)&addr, len);
 
+        free(buffer);
+
         if (ret < 0) {
             if (errno != EWOULDBLOCK) {
                 printf("Failed to send data\n %s", strerror(errno));
@@ -147,9 +152,10 @@ void* startThread(void* _arg){
 
     }
 
+    close(socketfd);
+    return NULL;
 
     err:
-    free(buffer);
     close(socketfd);
     return (void *)-1;
 
@@ -162,37 +168,42 @@ int main(int argc, char *argv[]){
         printf("error parsing\n");
         exit(1);
     }
+    printf("parsed\n");
 
-    pthread_t* threads [args.threads];
-    struct worker* workers [args.threads];
+    pthread_t threads [args.threads];
+    struct worker* workers ;
+
+    workers = calloc(args.threads, sizeof(struct worker));
+    printf("start creating\n");
     for(int i=0;i<args.threads;i++){
-        workers[i] = calloc(1, sizeof(struct worker));
-        workers[i]->active = 1;
-        pthread_create(threads[i], NULL, startThread, workers[i]);
+        workers[i].active = 1;
+        printf("create\n");
+        pthread_create(&threads[i], NULL, startThread, &workers[i]);
+        printf("created %d",i);
     }
-
+    printf("created threads\n");
     sleep(args.duration);
     for(int i=0;i<args.threads;i++){
-        workers[i]->active = 0;
+        workers[i].active = 0;
     }
 
     for(int i=0;i<args.threads;i++){
-        pthread_join(*threads[i],NULL);
+        pthread_join(threads[i],NULL);
     }
 
     long int total_pkts = 0;
     long int total_bytes = 0;
     printf("          RECV        SENT\n");
     for (int i = 0; i < args.threads; i++) {
-        total_pkts += workers[i]->pktSent;
-        total_bytes += workers[i]->bytesSent;
-        printf("thread %d: %lld        %lld\n", i, workers[i]->pktSent, workers[i]->bytesSent);
+        total_pkts += workers[i].pktSent;
+        total_bytes += workers[i].bytesSent;
+        printf("thread %d: %lld        %lld\n", i, workers[i].pktSent, workers[i].bytesSent);
     }
-    printf("total recv: %ld\n", total_pkts);
-    printf("total sent: %ld\n", total_bytes);
+    printf("total packets: %ld\n", total_pkts);
+    printf("total bytes: %ld\n", total_bytes);
     printf("duration: %d\n", args.duration);
-    printf("Recv Throughput: %.2f\n", (double)total_pkts / (double)args.duration);
-    printf("Sent Throughput: %.2f\n", (double)total_bytes / (double)args.duration);
+    printf("packets Throughput: %.2f\n", (double)total_pkts / (double)args.duration);
+    printf("bytes Throughput: %.2f\n", (double)total_bytes / (double)args.duration);
 
 
 
