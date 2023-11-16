@@ -148,7 +148,7 @@ void* startThread(void* _arg){
         }
         sent++;
         wrk->pktSent ++;
-        wrk->bytesSent += ret;
+        wrk->bytesSent += (ret+56);
 
     }
 
