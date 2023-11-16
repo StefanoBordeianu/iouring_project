@@ -56,7 +56,7 @@ int parseArgs(int argc, char* argv[]){
                 args.port = atoi(optarg);
                 break;
             case 'r':
-                args.rate = 1000000 * atoi(optarg);
+                args.rate =  atoi(optarg);
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -102,7 +102,8 @@ void* startThread(void* _arg){
     int ret;
     clock_t start_t, end_t;
     int true_size = args.pktSize+56;
-    int per_thread_rate = args.rate / args.threads * 1000;
+    long per_thread_rate = (1000000 * args.rate) / (args.threads * 1000);
+    long toSend = per_thread_rate/true_size;
     double total_t;
 
     addr.sin_family = AF_INET;
@@ -115,29 +116,36 @@ void* startThread(void* _arg){
 
     start_t = clock();
     int sent = 0;
-    printf("startSending\n");
+    buffer = malloc(args.pktSize);
+    memset(buffer,'a',args.pktSize);
+    buffer[args.pktSize-1] = '\0';
+    printf("startSending  %ld\n", per_thread_rate);
+
+    start_t = clock();
     while(wrk->active){
-        if(sent >= per_thread_rate){
+        if(sent >= toSend){
+            sent = 0;
             end_t = clock();
             total_t = (1000000 * (double)(end_t - start_t)) / CLOCKS_PER_SEC;
+            //printf("%f\n",total_t);
+            start_t = clock();
             if(total_t < 1000 ) {
+                //printf("LESS");
                 total_t = round(total_t);
                 usleep(1000 - total_t);
-                start_t = clock();
             }
         }
-        buffer = malloc(args.pktSize);
-        if(!buffer){
-            printf("[!]   Error allocating the send buffer\n");
-            goto err;
-        }
-        memset(buffer,'a',args.pktSize);
-        buffer[args.pktSize-1] = '\0';
+//        buffer = malloc(args.pktSize);
+//        if(!buffer){
+//            printf("[!]   Error allocating the send buffer\n");
+//            goto err;
+//        }
+//        memset(buffer,'a',args.pktSize);
+//        buffer[args.pktSize-1] = '\0';
 
         ret = sendto(socketfd,buffer,args.pktSize,0,
                      (struct sockaddr *)&addr, len);
 
-        free(buffer);
 
         if (ret < 0) {
             if (errno != EWOULDBLOCK) {
@@ -150,9 +158,8 @@ void* startThread(void* _arg){
         wrk->pktSent ++;
         ret += 56;
         wrk->bytesSent += ret;
-
     }
-
+    free(buffer);
     close(socketfd);
     return NULL;
 
@@ -169,18 +176,15 @@ int main(int argc, char *argv[]){
         printf("error parsing\n");
         exit(1);
     }
-    printf("parsed\n");
 
     pthread_t threads [args.threads];
     struct worker* workers ;
 
     workers = calloc(args.threads, sizeof(struct worker));
-    printf("start creating\n");
     for(int i=0;i<args.threads;i++){
         workers[i].active = 1;
-        printf("create\n");
         pthread_create(&threads[i], NULL, startThread, &workers[i]);
-        printf("created %d",i);
+        printf("created %d\n",i);
     }
     printf("created threads\n");
     sleep(args.duration);
