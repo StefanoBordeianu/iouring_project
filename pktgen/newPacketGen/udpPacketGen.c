@@ -148,7 +148,8 @@ void* startThread(void* _arg){
         }
         sent++;
         wrk->pktSent ++;
-        wrk->bytesSent += (ret+56);
+        ret += 56;
+        wrk->bytesSent += ret;
 
     }
 
@@ -193,7 +194,7 @@ int main(int argc, char *argv[]){
 
     long int total_pkts = 0;
     long int total_bytes = 0;
-    printf("          RECV        SENT\n");
+    printf("          PACKETS        BYTES\n");
     for (int i = 0; i < args.threads; i++) {
         total_pkts += workers[i].pktSent;
         total_bytes += workers[i].bytesSent;
