@@ -119,7 +119,7 @@ void* startThread(void* _arg){
     buffer = malloc(args.pktSize);
     memset(buffer,'a',args.pktSize);
     buffer[args.pktSize-1] = '\0';
-    printf("startSending  %ld\n", per_thread_rate);
+    printf("startSending  %ld  %ld PPms\n", per_thread_rate, toSend);
 
     start_t = clock();
     while(wrk->active){
