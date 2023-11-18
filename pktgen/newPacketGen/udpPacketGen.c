@@ -21,7 +21,7 @@
 struct args{
     char* ip;
     int port;
-    int rate;
+    double rate;
     int duration;
     int pktSize;
     int threads;
@@ -58,7 +58,7 @@ int parseArgs(int argc, char* argv[]){
                 args.port = atoi(optarg);
                 break;
             case 'r':
-                args.rate =  atoi(optarg) / 8 ;
+                args.rate =  strtod(optarg,NULL) / 8 ;
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -114,7 +114,7 @@ void* startThread(void* _arg){
     int ret;
     clock_t start_t, end_t;
     int true_size = args.pktSize+56;
-    long per_thread_rate = (1000000 * args.rate) / (args.threads * 10);
+    long per_thread_rate = (long) round((1000000 * args.rate) / (args.threads * 100));
     long toSend = per_thread_rate/true_size;
     double total_t;
 
