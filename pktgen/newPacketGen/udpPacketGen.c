@@ -34,6 +34,8 @@ struct worker{
 };
 
 struct args args;
+clock_t current_time;
+
 
 void usage(){
     /*TODO Make it nicer*/
@@ -56,7 +58,7 @@ int parseArgs(int argc, char* argv[]){
                 args.port = atoi(optarg);
                 break;
             case 'r':
-                args.rate =  atoi(optarg);
+                args.rate =  atoi(optarg) / 8 ;
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -77,6 +79,16 @@ int parseArgs(int argc, char* argv[]){
            args.ip, args.port);
     return 0;
 }
+
+void* updateClock(void* _arg){
+
+    struct worker *wrk = _arg;
+    while(wrk->active){
+        current_time = clock();
+    }
+    return NULL;
+}
+
 
 int create_socket(){
     int socket_fd;
@@ -114,27 +126,27 @@ void* startThread(void* _arg){
     wrk->bytesSent = 0;
     wrk->pktSent = 0;
 
-    start_t = clock();
     int sent = 0;
     buffer = malloc(args.pktSize);
     memset(buffer,'a',args.pktSize);
     buffer[args.pktSize-1] = '\0';
     printf("startSending  %ld  %ld PPms\n", per_thread_rate, toSend);
 
-    start_t = clock();
+    start_t = current_time;
     while(wrk->active){
         if(sent >= toSend){
             sent = 0;
-            end_t = clock();
+            end_t = current_time;
             total_t = (1000000 * (double)(end_t - start_t)) / CLOCKS_PER_SEC;
-            //printf("%f\n",total_t);
-            start_t = clock();
+            //printf("%.2f\n",total_t);
+            start_t = current_time;
             if(total_t < 1000 ) {
                 //printf("LESS");
                 total_t = round(total_t);
                 usleep(1000 - total_t);
             }
         }
+
 //        buffer = malloc(args.pktSize);
 //        if(!buffer){
 //            printf("[!]   Error allocating the send buffer\n");
@@ -179,6 +191,11 @@ int main(int argc, char *argv[]){
 
     pthread_t threads [args.threads];
     struct worker* workers ;
+    pthread_t clock_t;
+    struct worker* clock_worker = malloc(sizeof(struct worker));
+    clock_worker->active = 1;
+
+    pthread_create(&clock_t,0,updateClock,clock_worker);
 
     workers = calloc(args.threads, sizeof(struct worker));
     for(int i=0;i<args.threads;i++){
@@ -191,24 +208,26 @@ int main(int argc, char *argv[]){
     for(int i=0;i<args.threads;i++){
         workers[i].active = 0;
     }
+    clock_worker->active = 0;
 
     for(int i=0;i<args.threads;i++){
         pthread_join(threads[i],NULL);
     }
+    pthread_join(clock_t,NULL);
 
     long int total_pkts = 0;
-    long int total_bytes = 0;
+    long int total_bits = 0;
     printf("          PACKETS        BYTES\n");
     for (int i = 0; i < args.threads; i++) {
         total_pkts += workers[i].pktSent;
-        total_bytes += workers[i].bytesSent;
+        total_bits += workers[i].bytesSent*8;
         printf("thread %d: %lld        %lld\n", i, workers[i].pktSent, workers[i].bytesSent);
     }
     printf("total packets: %ld\n", total_pkts);
-    printf("total bytes: %ld\n", total_bytes);
+    printf("total bits: %.2f Gb\n", (double)total_bits / 1000000000);
     printf("duration: %d\n", args.duration);
     printf("packets Throughput: %.2f\n", (double)total_pkts / (double)args.duration);
-    printf("bytes Throughput: %.2f\n", (double)total_bytes / (double)args.duration);
+    printf("bits Throughput: %.2f Mb/s\n", (double)total_bits / ((double)args.duration * 1000000));
 
 
 
