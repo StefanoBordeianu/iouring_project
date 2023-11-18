@@ -114,7 +114,7 @@ void* startThread(void* _arg){
     int ret;
     clock_t start_t, end_t;
     int true_size = args.pktSize+56;
-    long per_thread_rate = (1000000 * args.rate) / (args.threads * 100);
+    long per_thread_rate = (1000000 * args.rate) / (args.threads * 10);
     long toSend = per_thread_rate/true_size;
     double total_t;
 
@@ -140,10 +140,10 @@ void* startThread(void* _arg){
             total_t = (1000000 * (double)(end_t - start_t)) / CLOCKS_PER_SEC;
             //printf("%.2f\n",total_t);
             start_t = current_time;
-            if(total_t < 10000 ) {
+            if(total_t < 100000 ) {
                 //printf("LESS");
                 total_t = round(total_t);
-                usleep(10000 - total_t);
+                usleep(100000 - total_t);
             }
         }
 
