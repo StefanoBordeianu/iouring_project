@@ -3,20 +3,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-
 #include <getopt.h>
-
 #include <arpa/inet.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-
-#include <sys/fcntl.h>
-
-#include <poll.h>
-
 #include <time.h>
 #include <pthread.h>
-#include <math.h>
+#include <sys/fcntl.h>
 
 struct args{
     char* ip;
@@ -34,22 +26,17 @@ struct worker{
 };
 
 struct args args;
-clock_t current_time;
 
 
 void usage(){
     /*TODO Make it nicer*/
-    printf("INFO:\n");
+    printf("INFO:\n-i IP\n-p PORT\n-r RATE\n-d DURATION\n-s PACKET SIZE\n-t NUMBER OF THREADS\n");
 
 }
 
-
 int parseArgs(int argc, char* argv[]){
-
     int opt;
-
-    printf("parsing\n");
-    while((opt =getopt(argc,argv,"i:p:r:d:s:t:")) != -1){
+    while((opt =getopt(argc,argv,"hi:p:r:d:s:t:")) != -1){
         switch (opt) {
             case 'i':
                 args.ip = optarg;
@@ -69,26 +56,18 @@ int parseArgs(int argc, char* argv[]){
             case 't':
                 args.threads = atoi(optarg);
                 break;
+            case 'h':
+                usage();
+                return -1;
             default:
                 usage();
                 return 1;
         }
     }
-    printf("finished parsing\n");
-    printf("Sending for %d sec.    TO %s:%d\n", args.duration,
-           args.ip, args.port);
+    printf("Sending for %d sec.    TO %s:%d\nRate: %.0f\n", args.duration,
+           args.ip, args.port,args.rate*1000000);
     return 0;
 }
-
-void* updateClock(void* _arg){
-
-    struct worker *wrk = _arg;
-    while(wrk->active){
-        current_time = clock();
-    }
-    return NULL;
-}
-
 
 int create_socket(){
     int socket_fd;
@@ -104,7 +83,7 @@ int create_socket(){
     return socket_fd;
 }
 
-void* startThread(void* _arg){
+void* sendThread(void* _arg){
 
     struct worker *wrk = _arg;
     int socketfd = create_socket();
@@ -112,11 +91,11 @@ void* startThread(void* _arg){
     socklen_t len;
     char* buffer;
     int ret;
-    clock_t start_t, end_t;
-    int true_size = args.pktSize+56;
-    long per_thread_rate = (long) round((1000000 * args.rate) / (args.threads * 100));
-    long toSend = per_thread_rate/true_size;
-    double total_t;
+    long time_taken;
+    struct timespec start_t, end_t, sleep_for;
+    int size_with_headers = args.pktSize+46;
+    long per_thread_rate = (long) (1000000 * args.rate) / (args.threads * 100); //10ms slices
+    long packets_per_slice = per_thread_rate/size_with_headers;
 
     addr.sin_family = AF_INET;
     inet_pton(AF_INET, args.ip, &addr.sin_addr);
@@ -130,35 +109,25 @@ void* startThread(void* _arg){
     buffer = malloc(args.pktSize);
     memset(buffer,'a',args.pktSize);
     buffer[args.pktSize-1] = '\0';
-    printf("startSending  %ld  %ld PPms\n", per_thread_rate, toSend);
+    printf("startSending  %ld  %ld PPcs\n", per_thread_rate, packets_per_slice);
 
-    start_t = current_time;
+    clock_gettime(CLOCK_REALTIME, &start_t);
     while(wrk->active){
-        if(sent >= toSend){
+
+        if(sent >= packets_per_slice){              //sent the ammount for slice
             sent = 0;
-            end_t = current_time;
-            total_t = (1000000 * (double)(end_t - start_t)) / CLOCKS_PER_SEC;
-            //printf("%.2f\n",total_t);
-            start_t = current_time;
-            if(total_t < 100000 ) {
-                //printf("LESS");
-                total_t = round(total_t);
-                usleep(100000 - total_t);
+            clock_gettime(CLOCK_REALTIME, &end_t);
+            time_taken = ((end_t.tv_sec - start_t.tv_sec) * 1000000000) + (end_t.tv_nsec - start_t.tv_nsec);
+            if(time_taken < 10000000 ) {
+                sleep_for.tv_sec = 0;
+                sleep_for.tv_nsec = 10000000 - time_taken;
+                nanosleep(&sleep_for,NULL);
+                clock_gettime(CLOCK_REALTIME, &start_t);
             }
         }
 
-//        buffer = malloc(args.pktSize);
-//        if(!buffer){
-//            printf("[!]   Error allocating the send buffer\n");
-//            goto err;
-//        }
-//        memset(buffer,'a',args.pktSize);
-//        buffer[args.pktSize-1] = '\0';
-
         ret = sendto(socketfd,buffer,args.pktSize,0,
                      (struct sockaddr *)&addr, len);
-
-
         if (ret < 0) {
             if (errno != EWOULDBLOCK) {
                 printf("Failed to send data\n %s", strerror(errno));
@@ -168,7 +137,7 @@ void* startThread(void* _arg){
         }
         sent++;
         wrk->pktSent ++;
-        ret += 56;
+        ret += 46;
         wrk->bytesSent += ret;
     }
     free(buffer);
@@ -178,47 +147,42 @@ void* startThread(void* _arg){
     err:
     close(socketfd);
     return (void *)-1;
-
 }
 
 
 int main(int argc, char *argv[]){
 
-    if(parseArgs(argc, argv)){
-        printf("error parsing\n");
-        exit(1);
+    int i;
+    if((i = parseArgs(argc, argv))!=0){
+        if(i>0) {
+            printf("error parsing\n");
+            exit(1);
+        }
+        else
+            return 1;
     }
 
     pthread_t threads [args.threads];
     struct worker* workers ;
-    pthread_t clock_t;
-    struct worker* clock_worker = malloc(sizeof(struct worker));
-    clock_worker->active = 1;
-
-    pthread_create(&clock_t,0,updateClock,clock_worker);
 
     workers = calloc(args.threads, sizeof(struct worker));
-    for(int i=0;i<args.threads;i++){
+    for(i=0;i<args.threads;i++){
         workers[i].active = 1;
-        pthread_create(&threads[i], NULL, startThread, &workers[i]);
-        printf("created %d\n",i);
+        pthread_create(&threads[i], NULL, sendThread, &workers[i]);
     }
-    printf("created threads\n");
     sleep(args.duration);
-    for(int i=0;i<args.threads;i++){
+    for(i=0;i<args.threads;i++){
         workers[i].active = 0;
     }
-    clock_worker->active = 0;
 
-    for(int i=0;i<args.threads;i++){
+    for(i=0;i<args.threads;i++){
         pthread_join(threads[i],NULL);
     }
-    pthread_join(clock_t,NULL);
 
     long int total_pkts = 0;
     long int total_bits = 0;
     printf("          PACKETS        BYTES\n");
-    for (int i = 0; i < args.threads; i++) {
+    for (i = 0; i < args.threads; i++) {
         total_pkts += workers[i].pktSent;
         total_bits += workers[i].bytesSent*8;
         printf("thread %d: %lld        %lld\n", i, workers[i].pktSent, workers[i].bytesSent);
