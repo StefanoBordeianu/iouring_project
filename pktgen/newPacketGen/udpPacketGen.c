@@ -26,6 +26,7 @@ struct worker{
 };
 
 struct args args;
+int bigger_slices;
 
 
 void usage(){
@@ -52,6 +53,10 @@ int parseArgs(int argc, char* argv[]){
                 break;
             case 's':
                 args.pktSize = atoi(optarg);
+                if(args.pktSize >= 10000)
+                    bigger_slices = 10;
+                else
+                    bigger_slices = 1;
                 break;
             case 't':
                 args.threads = atoi(optarg);
@@ -94,7 +99,7 @@ void* sendThread(void* _arg){
     long time_taken;
     struct timespec start_t, end_t, sleep_for;
     int size_with_headers = args.pktSize+46;
-    long per_thread_rate = (long) (1000000 * args.rate) / (args.threads * 100); //10ms slices
+    long per_thread_rate = (long) (1000000 * args.rate) / (args.threads * (100/bigger_slices)); //10ms slices
     long packets_per_slice = per_thread_rate/size_with_headers;
 
     addr.sin_family = AF_INET;
@@ -118,9 +123,9 @@ void* sendThread(void* _arg){
             sent = 0;
             clock_gettime(CLOCK_REALTIME, &end_t);
             time_taken = ((end_t.tv_sec - start_t.tv_sec) * 1000000000) + (end_t.tv_nsec - start_t.tv_nsec);
-            if(time_taken < 10000000 ) {
+            if(time_taken < 10000000 * bigger_slices ) {
                 sleep_for.tv_sec = 0;
-                sleep_for.tv_nsec = 10000000 - time_taken;
+                sleep_for.tv_nsec = (10000000 * bigger_slices) - time_taken;
 
                 sleep_ret = nanosleep(&sleep_for,NULL);
                 if(sleep_ret){
