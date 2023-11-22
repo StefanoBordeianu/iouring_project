@@ -126,6 +126,7 @@ int main(int argc, char *argv[]){
 
     signal(SIGALRM,sig_handler);
 
+    received = 0;
     packetsReceived = 0;
     if(argc >= 2)
         port= atoi(argv[1]);

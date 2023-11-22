@@ -12,7 +12,7 @@ int socketfd;
 long packetsReceived = 0;
 int duration = 5;
 int port = 8080;
-
+long bytes_rec;
 
 int init() {
 
@@ -51,6 +51,7 @@ void serverLoop(){
             start = 1;
             alarm(duration);
         }
+        bytes_rec += n;
         packetsReceived++;
     }
 
@@ -63,6 +64,7 @@ void sig_handler(int signum){
     FILE* file;
     file = fopen("socketServerResults.txt","a");
     fprintf(file, "Speed: %ld packets/second\n", speed);
+    fprintf(file,"Rate: %ld Mb/s\n\n", (bytes_rec*8)/(duration * 1000000));
     fclose(file);
     printf("Now closing\n\n");
     exit(0);
@@ -72,6 +74,7 @@ int main(int argc, char *argv[]){
 
     signal(SIGALRM,sig_handler);
 
+    bytes_rec = 0;
     packetsReceived = 0;
     if(argc >= 2)
         port= atoi(argv[1]);
