@@ -15,6 +15,7 @@
 struct io_uring ring;
 long packetsReceived;
 int duration = 5;
+long received;
 
 struct request{
     int type;
@@ -99,6 +100,7 @@ void startServer(int socketfd){
                     alarm(duration);
                 }
                 packetsReceived++;
+                received += cqe->res;
                 add_recv_request(socketfd,1024);
                 freemsg(req->message);
                 free(req);
@@ -112,6 +114,7 @@ void sig_handler(int signum){
     printf("\nReceived: %ld packets\n",packetsReceived);
     long speed = packetsReceived/duration;
     printf("Speed: %ld packets/second\n", speed);
+    printf("Rate: %ld Mb/s", (received*8)/duration);
     printf("Now closing\n\n");
     io_uring_queue_exit(&ring);
     exit(0);
