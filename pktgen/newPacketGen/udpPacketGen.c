@@ -45,7 +45,7 @@ int parseArgs(int argc, char* argv[]){
                 args.port = atoi(optarg);
                 break;
             case 'r':
-                args.rate =  strtod(optarg,NULL) / 8 ;
+                args.rate =  10* (strtod(optarg,NULL) / 8) ; //NO IDEA WHY BUT IT NEEDS 10* 
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -90,7 +90,7 @@ void* sendThread(void* _arg){
     struct sockaddr_in addr;
     socklen_t len;
     char* buffer;
-    int ret;
+    int ret, sleep_ret;
     long time_taken;
     struct timespec start_t, end_t, sleep_for;
     int size_with_headers = args.pktSize+46;
@@ -121,7 +121,17 @@ void* sendThread(void* _arg){
             if(time_taken < 10000000 ) {
                 sleep_for.tv_sec = 0;
                 sleep_for.tv_nsec = 10000000 - time_taken;
-                nanosleep(&sleep_for,NULL);
+
+                sleep_ret = nanosleep(&sleep_for,NULL);
+                if(sleep_ret){
+                    if (errno == EFAULT)
+                        printf("1\n %s", strerror(errno));
+                    if (errno == EINTR)
+                        printf("2\n %s", strerror(errno));
+                    if (errno == EINVAL)
+                        printf("3\n %s", strerror(errno));
+
+                }
                 clock_gettime(CLOCK_REALTIME, &start_t);
             }
         }
