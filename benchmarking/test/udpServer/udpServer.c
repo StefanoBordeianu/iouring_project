@@ -114,7 +114,7 @@ void sig_handler(int signum){
     printf("\nReceived: %ld packets\n",packetsReceived);
     long speed = packetsReceived/duration;
     printf("Speed: %ld packets/second\n", speed);
-    printf("Rate: %ld Mb/s", (received*8)/duration * 1000000);
+    printf("Rate: %ld Mb/s\n", (received*8)/(duration * 1000000));
     printf("Now closing\n\n");
     io_uring_queue_exit(&ring);
     exit(0);
