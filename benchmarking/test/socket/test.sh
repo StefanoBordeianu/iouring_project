@@ -1,8 +1,9 @@
 #!/bin/bash
-./server 2020 60
-for i in {1..10}
+for i in {1..8}
 do
-   ./server 2020 60
-   sleep 5
+  for i in {1..10}
+  do
+    ./server 2020 90
+    sleep 5
+  done
 done
-
