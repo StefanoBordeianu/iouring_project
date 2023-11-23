@@ -6,4 +6,5 @@ do
     ./server 2020 90
     sleep 5
   done
+  sleep 90
 done
