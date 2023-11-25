@@ -124,12 +124,12 @@ void startServer(int socketfd){
             exit(-1);
         }
         struct request* req = io_uring_cqe_get_data(cqe);
-
         switch (req->type) {
             case EVENT_TYPE_RECV:
                 if(!start){
                     start = 1;
                     alarm(args.duration);
+                    printf("alarm set\n");
                 }
                 packetsReceived++;
                 bytes_rec += cqe->res;
