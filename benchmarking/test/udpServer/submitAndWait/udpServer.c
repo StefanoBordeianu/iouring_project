@@ -42,6 +42,7 @@ int parseArgs(int argc, char* argv[]){
     args.port = 2020;
     args.batching = 256;
     args.duration = 10;
+    args.waiting_for = 1;
 
     while((opt =getopt(argc,argv,"hs:p:d:w:")) != -1) {
         switch (opt) {
