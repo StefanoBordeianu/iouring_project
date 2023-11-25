@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 
 #define EVENT_TYPE_ACCEPT 0
 #define EVENT_TYPE_RECV 1
