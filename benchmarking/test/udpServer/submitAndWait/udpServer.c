@@ -22,10 +22,11 @@ struct request{
 
 struct args{
     int port;
-    int batching;
+    int waiting_for;
     int duration;
     int size;
     int debug;
+    int batching;
 };
 
 struct args args;
@@ -36,19 +37,19 @@ void freemsg(struct msghdr * msg){
     free(msg);
 }
 
-void parseArgs(int argc, char* argv[]){
+int parseArgs(int argc, char* argv[]){
     int opt;
     args.port = 2020;
-    args.batching = 1;
+    args.batching = 256;
     args.duration = 10;
 
-    while((opt =getopt(argc,argv,"hi:p:d:b:")) != -1) {
+    while((opt =getopt(argc,argv,"hs:p:d:w:")) != -1) {
         switch (opt) {
             case 'p':
                 args.port = atoi(optarg);
                 break;
-            case 'b':
-                args.batching =  atoi(optarg);
+            case 'w':
+                args.waiting_for =  atoi(optarg);
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -69,11 +70,6 @@ int openListeningSocket(int port){
     socketfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(socketfd < 0){
         printf("SERVER: Error while creating the socket\n");
-        exit(-1);
-    }
-    if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-                       &opt,sizeof (opt))){
-        printf("SERVER: Socket options error\n");
         exit(-1);
     }
 
@@ -111,53 +107,19 @@ int add_recv_request(int socket, long readlength){
 }
 
 void startServer(int socketfd){
-    struct io_uring_cqe* cqe;
-    int start = 0;
-    add_recv_request(socketfd,1500);
-
-    printf("Entering server loop\n");
-    while(1){
-        if(io_uring_wait_cqe(&ring, &cqe)){
-            printf("ERROR WAITING\n");
-            exit(-1);
-        }
-        struct request* req = io_uring_cqe_get_data(cqe);
-
-        switch (req->type) {
-            case EVENT_TYPE_RECV:
-                if(!start){
-                    start = 1;
-                    alarm(args.duration);
-                }
-                packetsReceived++;
-                bytes_rec += cqe->res;
-                add_recv_request(socketfd,1500);
-                io_uring_submit(&ring);
-                freemsg(req->message);
-                free(req);
-                break;
-        }
-        io_uring_cqe_seen(&ring, cqe);
-    }
-}
-
-void startBatchingServer(int socketfd){
-    struct io_uring_cqe* cqe [args.batching];
+    struct io_uring_cqe* cqe [args.waiting_for];
     int start = 0;
     unsigned int packets_rec;
     int rec;
 
     for(int i=0;i<args.batching;i++)
         add_recv_request(socketfd,1500);
-    io_uring_submit(&ring);
 
     printf("Entering server loop\n");
     while (1) {
-        start:
+        io_uring_submit_and_wait(&ring,args.waiting_for);
         packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.batching);
-        if (!packets_rec) {
-            goto start;
-        }
+
         if (!start) {
             start = 1;
             alarm(args.duration);
@@ -165,20 +127,14 @@ void startBatchingServer(int socketfd){
         packetsReceived = packetsReceived + packets_rec;
         for (int i = 0; i < packets_rec; i++) {
             add_recv_request(socketfd, 1024);
-            struct request* req = io_uring_cqe_get_data(cqe[i]);
+            struct request *req = io_uring_cqe_get_data(cqe[i]);
             rec = cqe[i]->res;
             bytes_rec += rec;
-
-            if(args.debug && (packets_rec==args.batching))
-                printf("Emptied queue\n");
-
 
             freemsg(req->message);
             free(req);
             io_uring_cqe_seen(&ring, cqe[i]);
         }
-        io_uring_submit(&ring);
-
     }
 }
 
@@ -201,14 +157,8 @@ int main(int argc, char *argv[]){
     io_uring_queue_init(32768,&ring,0);
     socketfd = openListeningSocket(args.port);
 
-    if(args.batching == 1){
-        printf("starting standard server\n");
+    if(args.batching == 1)
         startServer(socketfd);
-    }
-    else {
-        printf("starting batching server\n");
-        startBatchingServer(socketfd);
-    }
 
 }
 //

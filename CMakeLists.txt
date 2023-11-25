@@ -17,4 +17,5 @@ add_executable(iouring_project
         pktgen/newPacketGen/udpPacketGen.c
         pktgen/OldPacketGen/udpgen.c
         benchmarking/test/udpServer/kernelPooling/udpServer.c
+        benchmarking/test/udpServer/submitAndWait/udpServer.c
 )
