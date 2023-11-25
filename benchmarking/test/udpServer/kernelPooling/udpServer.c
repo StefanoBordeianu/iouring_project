@@ -36,13 +36,18 @@ void freemsg(struct msghdr * msg){
     free(msg);
 }
 
-void parseArgs(int argc, char* argv[]){
+void usage(){
+    printf("Usage\n");
+}
+
+
+int parseArgs(int argc, char* argv[]){
     int opt;
     args.port = 2020;
     args.batching = 1;
     args.duration = 10;
 
-    while((opt =getopt(argc,argv,"hi:p:d:b:")) != -1) {
+    while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
         switch (opt) {
             case 'p':
                 args.port = atoi(optarg);
@@ -56,8 +61,15 @@ void parseArgs(int argc, char* argv[]){
             case 's':
                 args.size = atoi(optarg);
                 break;
+            case 'h':
+                usage();
+                return -1;
+            default:
+                usage();
+                return 1;
         }
     }
+    return 1;
 }
 
 

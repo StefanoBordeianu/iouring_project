@@ -115,6 +115,7 @@ void startServer(int socketfd){
     struct io_uring_cqe* cqe;
     int start = 0;
     add_recv_request(socketfd,1500);
+    io_uring_submit(&ring);
 
     printf("Entering server loop\n");
     while(1){
