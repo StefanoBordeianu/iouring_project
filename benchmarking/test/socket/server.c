@@ -41,7 +41,7 @@ void serverLoop(){
     socklen_t len = sizeof(addr);
     int n;
     int start = 0;
-    char * buffer [70000];
+    char buffer [70000];
 
     while(1){
         n = recvfrom(socketfd, (char *)buffer, 70000,

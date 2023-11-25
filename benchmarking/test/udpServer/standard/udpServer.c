@@ -6,7 +6,6 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/tcp.h>
 
 #define EVENT_TYPE_ACCEPT 0
 #define EVENT_TYPE_RECV 1
@@ -14,19 +13,53 @@
 
 struct io_uring ring;
 long packetsReceived;
-int duration = 5;
-long received;
+long bytes_rec;
 
 struct request{
     int type;
     struct msghdr* message;
 };
 
+struct args{
+    int port;
+    int batching;
+    int duration;
+    int size;
+    int debug;
+};
+
+struct args args;
+
 void freemsg(struct msghdr * msg){
     free(msg->msg_iov->iov_base);
     free(msg->msg_iov);
     free(msg);
 }
+
+int parseArgs(int argc, char* argv[]){
+    int opt;
+    args.port = 2020;
+    args.batching = 1;
+    args.duration = 10;
+
+    while((opt =getopt(argc,argv,"hi:p:d:b:")) != -1) {
+        switch (opt) {
+            case 'p':
+                args.port = atoi(optarg);
+                break;
+            case 'b':
+                args.batching =  atoi(optarg);
+                break;
+            case 'd':
+                args.duration = atoi(optarg);
+                break;
+            case 's':
+                args.size = atoi(optarg);
+                break;
+        }
+    }
+}
+
 
 int openListeningSocket(int port){
     int socketfd;
@@ -38,11 +71,7 @@ int openListeningSocket(int port){
         printf("SERVER: Error while creating the socket\n");
         exit(-1);
     }
-    if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-                  &opt,sizeof (opt))){
-        printf("SERVER: Socket options error\n");
-        exit(-1);
-    }
+
     add.sin_port = htons(port);
     add.sin_family = AF_INET;
     add.sin_addr.s_addr = INADDR_ANY;
@@ -54,7 +83,7 @@ int openListeningSocket(int port){
 }
 
 int add_recv_request(int socket, long readlength){
-    struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);;
+    struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
     struct request* req = malloc(sizeof(struct request));
 
     struct msghdr* msg = malloc(sizeof(struct msghdr));
@@ -73,15 +102,13 @@ int add_recv_request(int socket, long readlength){
     req->message = msg;
     io_uring_prep_recvmsg(sqe,socket, msg,0);
     io_uring_sqe_set_data(sqe, req);
-    io_uring_submit(&ring);
     return 1;
 }
 
 void startServer(int socketfd){
     struct io_uring_cqe* cqe;
     int start = 0;
-
-    add_recv_request(socketfd,1024);
+    add_recv_request(socketfd,1500);
 
     printf("Entering server loop\n");
     while(1){
@@ -97,11 +124,12 @@ void startServer(int socketfd){
                 //printf("RECEIVED from socket %d: %s\n",socketfd, msg_received);
                 if(!start){
                     start = 1;
-                    alarm(duration);
+                    alarm(args.duration);
                 }
                 packetsReceived++;
-                received += cqe->res;
+                bytes_rec += cqe->res;
                 add_recv_request(socketfd,1024);
+                io_uring_submit(&ring);
                 freemsg(req->message);
                 free(req);
                 break;
@@ -110,11 +138,52 @@ void startServer(int socketfd){
     }
 }
 
+void startBatchingServer(int socketfd){
+    struct io_uring_cqe* cqe [args.batching];
+    int start = 0;
+    unsigned int packets_rec;
+    int rec;
+
+    for(int i=0;i<args.batching;i++)
+        add_recv_request(socketfd,1500);
+    io_uring_submit(&ring);
+
+    printf("Entering server loop\n");
+    while (1) {
+        start:
+        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.batching);
+        if (!packets_rec) {
+            goto start;
+        }
+        if (!start) {
+            start = 1;
+            alarm(args.duration);
+        }
+        packetsReceived = packetsReceived + packets_rec;
+        for (int i = 0; i < packets_rec; i++) {
+            add_recv_request(socketfd, 1024);
+            struct request* req = io_uring_cqe_get_data(cqe[i]);
+            rec = cqe[i]->res;
+            bytes_rec += rec;
+
+            if(args.debug && (packets_rec==args.batching))
+                printf("Emptied queue\n");
+
+
+            freemsg(req->message);
+            free(req);
+            io_uring_cqe_seen(&ring, cqe[i]);
+        }
+        io_uring_submit(&ring);
+
+    }
+}
+
 void sig_handler(int signum){
-    printf("\nReceived: %ld packets\n",packetsReceived);
-    long speed = packetsReceived/duration;
+    printf("\nReceived: %ld packets of size %d\n",packetsReceived, args.size);
+    long speed = packetsReceived/args.duration;
     printf("Speed: %ld packets/second\n", speed);
-    printf("Rate: %ld Mb/s\n", (received*8)/(duration * 1000000));
+    printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
     printf("Now closing\n\n");
     io_uring_queue_exit(&ring);
     exit(0);
@@ -122,23 +191,17 @@ void sig_handler(int signum){
 
 int main(int argc, char *argv[]){
     int socketfd;
-    int port = 8080;
 
+    parseArgs(argc, argv);
     signal(SIGALRM,sig_handler);
 
-    received = 0;
-    packetsReceived = 0;
-    if(argc >= 2)
-        port= atoi(argv[1]);
-
-    if(argc ==3)
-	duration = atoi(argv[2]);
-
-    printf("Hello! Im the server!!\n");
     io_uring_queue_init(32768,&ring,0);
-    socketfd = openListeningSocket(port);
-    startServer(socketfd);
+    socketfd = openListeningSocket(args.port);
 
+    if(args.batching == 1)
+        startServer(socketfd);
+    else
+        startBatchingServer(socketfd);
 
 }
 //
