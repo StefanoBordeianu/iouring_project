@@ -19,4 +19,6 @@ add_executable(iouring_project
         benchmarking/test/udpServer/kernelPooling/udpServer.c
         benchmarking/test/udpServer/submitAndWait/udpServer.c
         benchmarking/test/udpServer/kernelPooling/udpServerWaiting.c
+        benchmarking/test/udpServer/multishot/udpServer.c
+        benchmarking/test/udpServer/multishot/githubExample.c
 )
