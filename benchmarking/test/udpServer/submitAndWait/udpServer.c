@@ -119,7 +119,7 @@ void startServer(int socketfd){
     printf("Entering server loop\n");
     while (1) {
         io_uring_submit_and_wait(&ring,args.waiting_for);
-        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.batching);
+        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.waiting_for);
 
         if (!start) {
             start = 1;
