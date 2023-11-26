@@ -47,7 +47,7 @@ int parseArgs(int argc, char* argv[]){
     args.waiting_for = 1;
     args.duration = 10;
 
-    while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
+    while((opt =getopt(argc,argv,"hs:p:d:w:")) != -1) {
         switch (opt) {
             case 'p':
                 args.port = atoi(optarg);
