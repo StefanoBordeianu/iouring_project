@@ -127,7 +127,7 @@ void startBatchingServer(int* socketfd){
 
     for(int i=0;i<args.batching;i++)
         add_recv_request(socketfd,1500);
-    io_uring_submit(&ring);
+    //io_uring_submit(&ring);
 
     printf("Entering server loop\n");
     while (1) {
@@ -144,17 +144,13 @@ void startBatchingServer(int* socketfd){
         for (int i = 0; i < packets_rec; i++) {
             add_recv_request(socketfd, 1024);
             struct request* req = io_uring_cqe_get_data(cqe[i]);
-            rec = cqe[i]->res;
-            bytes_rec += rec;
-
-            if(args.debug && (packets_rec==args.batching))
-                printf("Emptied queue\n");
+            bytes_rec += cqe[i]->res;
 
             freemsg(req->message);
             free(req);
             io_uring_cqe_seen(&ring, cqe[i]);
         }
-        io_uring_submit(&ring);
+        //io_uring_submit(&ring);
 
     }
 }
