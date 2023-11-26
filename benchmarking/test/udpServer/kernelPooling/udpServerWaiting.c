@@ -22,7 +22,7 @@ struct request{
 
 struct args{
     int port;
-    int batching;
+    int waiting_for;
     int duration;
     int size;
     int debug;
@@ -44,7 +44,7 @@ void usage(){
 int parseArgs(int argc, char* argv[]){
     int opt;
     args.port = 2020;
-    args.batching = 1;
+    args.waiting_for = 1;
     args.duration = 10;
 
     while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
@@ -52,8 +52,8 @@ int parseArgs(int argc, char* argv[]){
             case 'p':
                 args.port = atoi(optarg);
                 break;
-            case 'b':
-                args.batching =  atoi(optarg);
+            case 'w':
+                args.waiting_for =  atoi(optarg);
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -120,35 +120,34 @@ int add_recv_request(int *socket, long readlength){
 }
 
 void startBatchingServer(int* socketfd){
-    struct io_uring_cqe* cqe [args.batching];
+    struct io_uring_cqe* cqe [args.waiting_for];
     int start = 0;
     unsigned int packets_rec;
     int rec;
 
-    for(int i=0;i<args.batching;i++)
+    for(int i=0;i<(args.waiting_for*2);i++)
         add_recv_request(socketfd,1500);
-    io_uring_submit(&ring);
 
     printf("Entering server loop\n");
     while (1) {
-        io_uring_wait_cqe_nr(&ring, cqe, args.batching);
+        io_uring_submit_and_wait(&ring,args.waiting_for);
+        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.waiting_for);
 
         if (!start) {
             start = 1;
             alarm(args.duration);
         }
-        packetsReceived = packetsReceived + args.batching;
-        for (int i = 0; i < args.batching; i++) {
-            add_recv_request(socketfd, 1500);
-            struct request* req = io_uring_cqe_get_data(cqe[i]);
-            bytes_rec += cqe[i]->res;
+        packetsReceived = packetsReceived + packets_rec;
+        for (int i = 0; i < packets_rec; i++) {
+            add_recv_request(socketfd, 1024);
+            struct request *req = io_uring_cqe_get_data(cqe[i]);
+            rec = cqe[i]->res;
+            bytes_rec += rec;
 
             freemsg(req->message);
             free(req);
             io_uring_cqe_seen(&ring, cqe[i]);
         }
-        io_uring_submit(&ring);
-
     }
 }
 
