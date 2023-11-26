@@ -113,7 +113,7 @@ void startServer(int socketfd){
     unsigned int packets_rec;
     int rec;
 
-    for(int i=0;i<args.batching;i++)
+    for(int i=0;i<(args.waiting_for*2);i++)
         add_recv_request(socketfd,1500);
 
     printf("Entering server loop\n");
@@ -158,8 +158,7 @@ int main(int argc, char *argv[]){
     io_uring_queue_init(32768,&ring,0);
     socketfd = openListeningSocket(args.port);
 
-    if(args.batching == 1)
-        startServer(socketfd);
+    startServer(socketfd);
 
 }
 //
