@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <linux/io_uring.h>
-#include <liburing.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include <liburing.h>
 
 #define EVENT_TYPE_ACCEPT 0
 #define EVENT_TYPE_RECV 1
