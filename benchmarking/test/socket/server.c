@@ -63,8 +63,8 @@ void sig_handler(int signum){
     printf("Speed: %ld packets/second\n", speed);
     FILE* file;
     file = fopen("socketServerResults.txt","a");
-    fprintf(file, "Speed: %ld packets/second\n", speed);
-    fprintf(file,"Rate: %f Mb/s\n\n", ((double)(bytes_rec*8))/(duration * 1000000));
+    fprintf(file, "%ld\n", speed);
+    fprintf(file,"%f\n", ((double)(bytes_rec*8))/(duration * 1000000));
     fclose(file);
     printf("Now closing\n\n");
     exit(0);
