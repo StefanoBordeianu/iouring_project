@@ -73,6 +73,11 @@ int openListeningSocket(int port){
         printf("SERVER: Error while creating the socket\n");
         exit(-1);
     }
+    if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+                  &opt,sizeof (opt))){
+        printf("SERVER: Socket options error\n");
+        exit(-1);
+    }
 
     add.sin_port = htons(port);
     add.sin_family = AF_INET;

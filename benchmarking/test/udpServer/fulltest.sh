@@ -11,9 +11,12 @@ do
         printf "w-%s\n" $x >> submitAndWait/waitServerResults.txt
         for y in {1..10}
         do
-            ./standard/p -p 2020 -d 120 -s $a -b $x
-            ./kernelPooling/p -p 2020 -d 120 -s $a -b $x
-            ./submitAndWait/p -p 2020 -d 120 -s $a -w $x
+            ./standard/p -p 2020 -d 115 -s $a -b $x
+            sleep 5
+            ./kernelPooling/p -p 2020 -d 115 -s $a -b $x
+            sleep 5
+            ./submitAndWait/p -p 2020 -d 115 -s $a -w $x
+            sleep 5
         done
     done
     sleep 300;
