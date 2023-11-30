@@ -1,7 +1,7 @@
 for a in 20 50 100 250 500 1000 1450
 do
     printf "s-%s\n" $a >> standardServerResults.txt
-    printf "s-%s\n" $a >> kernelServerResults.txt
+    printf "s-%s\n" $a >> socketServerResults.txt
     printf "s-%s\n" $a >> waitServerResults.txt
     for y in {1..10}
     do

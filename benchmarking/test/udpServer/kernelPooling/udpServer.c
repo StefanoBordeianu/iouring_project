@@ -165,7 +165,7 @@ void sig_handler(int signum){
     printf("Speed: %ld packets/second\n", speed);
     printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
     printf("Now closing\n\n");
-    FILE* file = fopen("kernelServerResults.txt","a");
+    FILE* file = fopen("socketServerResults.txt","a");
     fprintf(file, "%ld\n", speed);
     fprintf(file,"%f\n", ((double)(bytes_rec*8))/(args.duration * 1000000));
     fclose(file);
