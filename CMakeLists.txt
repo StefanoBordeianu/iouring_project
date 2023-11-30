@@ -21,4 +21,5 @@ add_executable(iouring_project
         benchmarking/test/udpServer/kernelPooling/udpServerWaiting.c
         benchmarking/test/udpServer/multishot/udpServer.c
         benchmarking/test/udpServer/multishot/githubExample.c
+        benchmarking/test/udpServer/parse.c
 )
