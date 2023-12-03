@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <linux/io_uring.h>
-#include <liburing.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include <liburing.h>
+
 
 #define EVENT_TYPE_ACCEPT 0
 #define EVENT_TYPE_RECV 1
@@ -22,7 +22,7 @@ struct request{
 
 struct args{
     int port;
-    int waiting_for;
+    int batching;
     int duration;
     int size;
     int debug;
@@ -36,24 +36,19 @@ void freemsg(struct msghdr * msg){
     free(msg);
 }
 
-void usage(){
-    printf("Usage\n");
-}
-
-
-int parseArgs(int argc, char* argv[]){
+void parseArgs(int argc, char* argv[]){
     int opt;
     args.port = 2020;
-    args.waiting_for = 1;
+    args.batching = 1;
     args.duration = 10;
 
-    while((opt =getopt(argc,argv,"hs:p:d:w:")) != -1) {
+    while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
         switch (opt) {
             case 'p':
                 args.port = atoi(optarg);
                 break;
-            case 'w':
-                args.waiting_for =  atoi(optarg);
+            case 'b':
+                args.batching =  atoi(optarg);
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -61,15 +56,8 @@ int parseArgs(int argc, char* argv[]){
             case 's':
                 args.size = atoi(optarg);
                 break;
-            case 'h':
-                usage();
-                return -1;
-            default:
-                usage();
-                return 1;
         }
     }
-    return 1;
 }
 
 
@@ -83,6 +71,11 @@ int openListeningSocket(int port){
         printf("SERVER: Error while creating the socket\n");
         exit(-1);
     }
+    if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+                       &opt,sizeof (opt))){
+        printf("SERVER: Socket options error\n");
+        exit(-1);
+    }
 
     add.sin_port = htons(port);
     add.sin_family = AF_INET;
@@ -94,7 +87,7 @@ int openListeningSocket(int port){
     return socketfd;
 }
 
-int add_recv_request(int *socket, long readlength){
+int add_recv_request(int socket, long readlength){
     struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
     struct request* req = malloc(sizeof(struct request));
 
@@ -112,27 +105,66 @@ int add_recv_request(int *socket, long readlength){
 
     req->type = EVENT_TYPE_RECV;
     req->message = msg;
+    io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
 
     io_uring_prep_recvmsg(sqe,0, msg,0);
+    //io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
+
     sqe->flags |= IOSQE_FIXED_FILE;
     io_uring_sqe_set_data(sqe, req);
     return 1;
 }
 
-void startBatchingServer(int* socketfd){
-    struct io_uring_cqe* cqe [args.waiting_for];
+void startServer(int socketfd){
+    struct io_uring_cqe* cqe;
+    int start = 0;
+    add_recv_request(socketfd,1500);
+    io_uring_submit(&ring);
+
+    printf("Entering server loop\n");
+    while(1){
+        if(io_uring_wait_cqe(&ring, &cqe)){
+            printf("ERROR WAITING\n");
+            exit(-1);
+        }
+        struct request* req = io_uring_cqe_get_data(cqe);
+        switch (req->type) {
+            case EVENT_TYPE_RECV:
+                if(!start){
+                    start = 1;
+                    alarm(args.duration);
+                    printf("alarm set\n");
+                }
+                packetsReceived++;
+                bytes_rec += cqe->res;
+                add_recv_request(socketfd,1500);
+                io_uring_submit(&ring);
+                freemsg(req->message);
+                free(req);
+                break;
+        }
+
+        io_uring_cqe_seen(&ring, cqe);
+    }
+}
+
+void startBatchingServer(int socketfd){
+    struct io_uring_cqe* cqe [args.batching];
     int start = 0;
     unsigned int packets_rec;
     int rec;
 
-    for(int i=0;i<(args.waiting_for*2);i++)
+    for(int i=0;i<args.batching;i++)
         add_recv_request(socketfd,1500);
+    io_uring_submit(&ring);
 
     printf("Entering server loop\n");
     while (1) {
-        io_uring_submit_and_wait(&ring,args.waiting_for);
-        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.waiting_for);
-
+        start:
+        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.batching);
+        if (!packets_rec) {
+            goto start;
+        }
         if (!start) {
             start = 1;
             alarm(args.duration);
@@ -140,14 +172,20 @@ void startBatchingServer(int* socketfd){
         packetsReceived = packetsReceived + packets_rec;
         for (int i = 0; i < packets_rec; i++) {
             add_recv_request(socketfd, 1024);
-            struct request *req = io_uring_cqe_get_data(cqe[i]);
+            struct request* req = io_uring_cqe_get_data(cqe[i]);
             rec = cqe[i]->res;
             bytes_rec += rec;
 
+            if(args.debug && (packets_rec==args.batching))
+                printf("Emptied queue\n");
+
+
             freemsg(req->message);
             free(req);
-            io_uring_cqe_seen(&ring, cqe[i]);
         }
+        io_uring_cq_advance(&ring,packets_rec);
+        io_uring_submit(&ring);
+
     }
 }
 
@@ -157,31 +195,32 @@ void sig_handler(int signum){
     printf("Speed: %ld packets/second\n", speed);
     printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
     printf("Now closing\n\n");
+    FILE* file = fopen("standardRegisteredServerResults.txt","a");
+    fprintf(file, "%ld\n", speed);
+    fprintf(file,"%f\n", ((double)(bytes_rec*8))/(args.duration * 1000000));
+    fclose(file);
     io_uring_queue_exit(&ring);
     exit(0);
 }
 
 int main(int argc, char *argv[]){
     int socketfd;
-    struct io_uring_params params;
-
-    if (geteuid()) {
-        fprintf(stderr, "You need root privileges to run this program.\n");
-        return 1;
-    }
-
-    memset(&params, 0, sizeof(params));
-    params.flags |= IORING_SETUP_SQPOLL;
-    params.sq_thread_idle = 10000;
 
     parseArgs(argc, argv);
     signal(SIGALRM,sig_handler);
 
-    io_uring_queue_init_params(32768,&ring,&params);
+    io_uring_queue_init(32768,&ring,0);
     socketfd = openListeningSocket(args.port);
     io_uring_register_files(&ring,&socketfd,1);
 
-    startBatchingServer(&socketfd);
+    if(args.batching == 1){
+        printf("starting standard server\n");
+        startServer(socketfd);
+    }
+    else {
+        printf("starting batching server\n");
+        startBatchingServer(socketfd);
+    }
 
 }
 //

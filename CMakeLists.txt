@@ -18,8 +18,9 @@ add_executable(iouring_project
         pktgen/OldPacketGen/udpgen.c
         benchmarking/test/udpServer/kernelPooling/udpServer.c
         benchmarking/test/udpServer/submitAndWait/udpServer.c
-        benchmarking/test/udpServer/kernelPooling/udpServerWaiting.c
         benchmarking/test/udpServer/multishot/udpServer.c
-        benchmarking/test/udpServer/multishot/githubExample.c
         benchmarking/test/udpServer/parse.c
+        benchmarking/test/udpServer/submitAndWait/registeredFile.c
+        benchmarking/test/udpServer/standard/registeredFile.c
+        benchmarking/test/udpServer/multishot/ex.c
 )

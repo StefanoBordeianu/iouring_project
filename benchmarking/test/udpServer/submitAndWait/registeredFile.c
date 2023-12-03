@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include <liburing/io_uring.h>
 #include <liburing.h>
 
 
@@ -14,6 +15,7 @@
 struct io_uring ring;
 long packetsReceived;
 long bytes_rec;
+
 
 struct request{
     int type;
@@ -105,9 +107,13 @@ int add_recv_request(int socket, long readlength){
     msg->msg_iov = iov;
     msg->msg_iovlen = 1;
 
-    req->type = EVENT_TYPE_RECV;
     req->message = msg;
-    io_uring_prep_recvmsg(sqe,socket, msg,0);
+    io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
+
+    io_uring_prep_recvmsg(sqe,0, msg,0);
+    //io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
+
+    sqe->flags |= IOSQE_FIXED_FILE;
     io_uring_sqe_set_data(sqe, req);
     return 1;
 }
@@ -117,6 +123,7 @@ void startServer(int socketfd){
     int start = 0;
     unsigned int packets_rec;
     int rec;
+    printf("starting server\n");
 
     for(int i=0;i<(args.waiting_for*2);i++)
         add_recv_request(socketfd,1500);
@@ -150,7 +157,7 @@ void sig_handler(int signum){
     printf("Speed: %ld packets/second\n", speed);
     printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
     printf("Now closing\n\n");
-    FILE* file = fopen("waitServerResults.txt","a");
+    FILE* file = fopen("waitRegisteredServerResults.txt","a");
     fprintf(file, "%ld\n", speed);
     fprintf(file,"%f\n", ((double)(bytes_rec*8))/(args.duration * 1000000));
     fclose(file);
@@ -166,6 +173,7 @@ int main(int argc, char *argv[]){
 
     io_uring_queue_init(32768,&ring,0);
     socketfd = openListeningSocket(args.port);
+    io_uring_register_files(&ring,&socketfd,1);
 
     startServer(socketfd);
 

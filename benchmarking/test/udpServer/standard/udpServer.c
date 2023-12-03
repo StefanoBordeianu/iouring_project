@@ -176,9 +176,9 @@ void startBatchingServer(int socketfd){
 
             freemsg(req->message);
             free(req);
-            io_uring_cqe_seen(&ring, cqe[i]);
         }
         io_uring_submit(&ring);
+        io_uring_cq_advance(&ring,packets_rec);
 
     }
 }
