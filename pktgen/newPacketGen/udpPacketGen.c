@@ -99,7 +99,8 @@ void* sendThread(void* _arg){
     long time_taken;
     struct timespec start_t, end_t, sleep_for;
     int size_with_headers = args.pktSize+46;
-    //int size_with_headers = args.pktSize;
+    //
+    // int size_with_headers = args.pktSize;
     long per_thread_rate = (long) (1000000 * args.rate) / (args.threads * (100/bigger_slices)); //10ms slices
     long packets_per_slice = per_thread_rate/size_with_headers;
 

@@ -1,16 +1,14 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
-#include <arpa/inet.h>
-#include <errno.h>
-
-#include "liburing.h"
+#include <liburing.h>
 
 #define BUF_GRPID 37
 #define BUFF_SIZE 1500
 #define NUMBER_OF_BUFFERS args.numb_of_buffers
-
 
 struct io_uring ring;
 long packetsReceived;
@@ -19,46 +17,51 @@ char** buffers;
 
 struct request{
     int type;
-    char* message;
+    struct msghdr* message;
 };
 
 struct args{
     int port;
-    int numb_of_buffers;
+    int batching;
     int duration;
     int size;
     int debug;
+    int numb_of_buffers
 };
 
 struct args args;
 
-int parseArgs(int argc, char* argv[]){
+void freemsg(struct msghdr * msg){
+    free(msg->msg_iov->iov_base);
+    free(msg->msg_iov);
+    free(msg);
+}
+
+void parseArgs(int argc, char* argv[]){
     int opt;
     args.port = 2020;
+    args.batching = 1;
     args.duration = 10;
-    args.numb_of_buffers = 10000;
-    args.debug = 0;
 
-    while((opt =getopt(argc,argv,"hs:p:d:n:b:v")) != -1) {
+    while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
         switch (opt) {
             case 'p':
                 args.port = atoi(optarg);
                 break;
-            case 'n':
-                args.numb_of_buffers =  atoi(optarg);
+            case 'b':
+                args.batching =  atoi(optarg);
                 break;
             case 'd':
                 args.duration = atoi(optarg);
                 break;
-            case 'v':
-                args.debug = 1;
-                break;
             case 's':
                 args.size = atoi(optarg);
                 break;
+            case 'n':
+                args.numb_of_buffers = atoi(optarg);
+                break;
         }
     }
-    return 0;
 }
 
 struct io_uring_buf_ring* initialize_buffers(){
@@ -99,11 +102,17 @@ struct io_uring_buf_ring* initialize_buffers(){
 
 int openListeningSocket(int port){
     int socketfd;
+    int opt = 1;
     struct sockaddr_in add;
 
     socketfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(socketfd < 0){
         printf("SERVER: Error while creating the socket\n");
+        exit(-1);
+    }
+    if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+                  &opt,sizeof (opt))){
+        printf("SERVER: Socket options error\n");
         exit(-1);
     }
 
@@ -117,53 +126,98 @@ int openListeningSocket(int port){
     return socketfd;
 }
 
-int add_recv_request(int socket){
+int add_recv_request(int socket, long readlength){
     struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
-    io_uring_prep_recv_multishot(sqe, socket, NULL,0,0);
+
+//    struct msghdr* msg = malloc(sizeof(struct msghdr));
+//    struct iovec* iov = malloc(sizeof(struct iovec));
+//
+//    memset(msg, 0, sizeof(struct msghdr));
+//    memset(iov,0,sizeof(struct iovec));
+//    iov->iov_base = malloc(readlength);
+//    iov->iov_len = readlength;
+//    msg->msg_name = NULL;
+//    msg->msg_namelen = 0;
+//    msg->msg_iov = iov;
+//    msg->msg_iovlen = 1;
+
+//    req->message = msg;
+    io_uring_prep_recvmsg(sqe,socket, NULL,0);
     sqe->buf_group = BUF_GRPID;
     io_uring_sqe_set_flags(sqe, IOSQE_BUFFER_SELECT);
     return 1;
 }
 
+void resupply_buffer(struct io_uring_cqe* cqe, int offset, struct io_uring_buf_ring* br){
+    unsigned int buffer_id;
+
+    buffer_id = cqe->flags >> IORING_CQE_BUFFER_SHIFT;
+    io_uring_buf_ring_add(br, buffers[buffer_id], BUFF_SIZE, buffer_id,
+                          io_uring_buf_ring_mask(NUMBER_OF_BUFFERS), offset);
+}
+
 void startServer(int socketfd){
-    struct io_uring_cqe* cqe[args.numb_of_buffers];
-    unsigned int reaped, buffer_id;
+    struct io_uring_cqe* cqe;
     int start = 0;
     struct io_uring_buf_ring* br;
     br = initialize_buffers();
 
-    add_recv_request(socketfd);
+    add_recv_request(socketfd,1500);
     io_uring_submit(&ring);
-    printf("entering server\n");
+
+    printf("Entering server loop\n");
+    while(1){
+        if(io_uring_wait_cqe(&ring, &cqe)){
+            printf("ERROR WAITING\n");
+            exit(-1);
+        }
+        if(!start) {
+            start = 1;
+            alarm(args.duration);
+            printf("alarm set\n");
+        }
+
+        packetsReceived++;
+        bytes_rec += cqe->res;
+        add_recv_request(socketfd,1500);
+        io_uring_submit(&ring);
+        resupply_buffer(cqe,0,br);
+        io_uring_buf_ring_cq_advance(&ring,br,1);
+    }
+}
+
+void startBatchingServer(int socketfd){
+    struct io_uring_cqe* cqe [args.batching];
+    int start = 0;
+    unsigned int packets_rec;
+    int rec;
+    struct io_uring_buf_ring* br;
+    br = initialize_buffers();
+
+    for(int i=0;i<args.batching;i++)
+        add_recv_request(socketfd,1500);
+    io_uring_submit(&ring);
+
+    printf("Entering server loop\n");
     while (1) {
         start:
-        reaped = io_uring_peek_batch_cqe(&ring,cqe,args.numb_of_buffers);
-        if(!reaped){
+        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.batching);
+        if (!packets_rec) {
             goto start;
         }
         if (!start) {
             start = 1;
             alarm(args.duration);
         }
-        packetsReceived += reaped;
-        for (int i = 0; i < reaped; i++) {
-            if (!(cqe[i]->flags & IORING_CQE_F_MORE)) {
-                if(args.debug)
-                    printf("readding multishot\n");
-                add_recv_request(socketfd);
-                io_uring_submit(&ring);
-            }
-            if(cqe[i]->res == -ENOBUFS){
-                if(args.debug)
-                    printf("readding multishot\n");
-                continue;
-            }
+        packetsReceived = packetsReceived + packets_rec;
+        for (int i = 0; i < packets_rec; i++) {
+            add_recv_request(socketfd, 1024);
             bytes_rec += cqe[i]->res;
-            buffer_id = cqe[i]->flags >> IORING_CQE_BUFFER_SHIFT;
-            io_uring_buf_ring_add(br, buffers[buffer_id], BUFF_SIZE, buffer_id,
-                                  io_uring_buf_ring_mask(args.numb_of_buffers), i);
+            resupply_buffer(cqe[i],i,br);
         }
-        io_uring_buf_ring_cq_advance(&ring,br,(int)reaped);
+        io_uring_submit(&ring);
+        io_uring_buf_ring_cq_advance(&ring,br,packets_rec);
+
     }
 }
 
@@ -173,20 +227,13 @@ void sig_handler(int signum){
     printf("Speed: %ld packets/second\n", speed);
     printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
     printf("Now closing\n\n");
-    FILE* file;
-    if(args.numb_of_buffers == 2)
-        file = fopen("multiServerResults2.txt","a");
-    else if(args.numb_of_buffers == 64)
-        file = fopen("multiServerResults64.txt","a");
-    else
-        file = fopen("multiServerResults2048.txt","a");
+    FILE* file = fopen("standardServerResults.txt","a");
     fprintf(file, "%ld\n", speed);
     fprintf(file,"%f\n", ((double)(bytes_rec*8))/(args.duration * 1000000));
     fclose(file);
     io_uring_queue_exit(&ring);
     exit(0);
 }
-
 
 int main(int argc, char *argv[]){
     int socketfd;
@@ -197,8 +244,13 @@ int main(int argc, char *argv[]){
     io_uring_queue_init(32768,&ring,0);
     socketfd = openListeningSocket(args.port);
 
-
-    startServer(socketfd);
+    if(args.batching == 1){
+        printf("starting standard server\n");
+        startServer(socketfd);
+    }
+    else {
+        printf("starting batching server\n");
+        startBatchingServer(socketfd);
+    }
 
 }
-

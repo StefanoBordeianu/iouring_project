@@ -19,8 +19,8 @@ add_executable(iouring_project
         benchmarking/test/udpServer/kernelPooling/udpServer.c
         benchmarking/test/udpServer/submitAndWait/udpServer.c
         benchmarking/test/udpServer/multishot/udpServer.c
-        benchmarking/test/udpServer/parse.c
         benchmarking/test/udpServer/submitAndWait/registeredFile.c
         benchmarking/test/udpServer/standard/registeredFile.c
         benchmarking/test/udpServer/multishot/ex.c
+        benchmarking/test/udpServer/standard/provided.c
 )
