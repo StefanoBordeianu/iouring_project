@@ -132,7 +132,7 @@ void startServer(int socketfd){
         }
         packetsReceived = packetsReceived + packets_rec;
         for (int i = 0; i < packets_rec; i++) {
-            add_recv_request(socketfd, 1024);
+            add_recv_request(socketfd, 1500);
             struct request *req = io_uring_cqe_get_data(cqe[i]);
             rec = cqe[i]->res;
             bytes_rec += rec;

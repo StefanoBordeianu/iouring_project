@@ -7,13 +7,15 @@
 #include <liburing.h>
 
 #define BUF_GRPID 37
-#define BUFF_SIZE 1500
-#define NUMBER_OF_BUFFERS args.numb_of_buffers
+#define BUFF_SIZE (args.size+50)
+#define NUMBER_OF_BUFFERS 2048
+#define NUMBER_OF_RINGS args.numb_of_buffers
 
 struct io_uring ring;
 long packetsReceived;
 long bytes_rec;
-char** buffers;
+char*** buffers;
+struct io_uring_buf_ring** rings;
 
 struct request{
     int type;
@@ -42,6 +44,7 @@ void parseArgs(int argc, char* argv[]){
     args.port = 2020;
     args.batching = 1;
     args.duration = 10;
+    args.size = 50;
 
     while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
         switch (opt) {
@@ -64,7 +67,7 @@ void parseArgs(int argc, char* argv[]){
     }
 }
 
-struct io_uring_buf_ring* initialize_buffers(){
+struct io_uring_buf_ring* initialize_buffer(int number){
 
     struct io_uring_buf_reg reg = {};
     struct io_uring_buf_ring *br;
@@ -85,19 +88,26 @@ struct io_uring_buf_ring* initialize_buffers(){
         return NULL;
     }
 
-    buffers = malloc(sizeof(char*) * NUMBER_OF_BUFFERS);
-    for(i=0;i<NUMBER_OF_BUFFERS;i++)
-        buffers[i] = malloc(BUFF_SIZE);
+    char** b = buffers[number];
 
     io_uring_buf_ring_init(br);
     for (i = 0; i < NUMBER_OF_BUFFERS; i++) {
-        io_uring_buf_ring_add(br, buffers[i], BUFF_SIZE, i,
+        io_uring_buf_ring_add(br, b[i], BUFF_SIZE, i,
                               io_uring_buf_ring_mask(NUMBER_OF_BUFFERS),
                               i);
     }
 
     io_uring_buf_ring_advance(br, NUMBER_OF_BUFFERS);
     return br;
+}
+
+struct io_uring_buf_ring* initialize_buffers() {
+    for (int i=0;i<NUMBER_OF_RINGS;i++){
+        buffers[i] = malloc(sizeof(char*) * NUMBER_OF_BUFFERS);
+        for(i=0;i<NUMBER_OF_BUFFERS;i++)
+            buffers[i] = malloc(BUFF_SIZE);
+        rings[i] = initialize_buffer(i);
+    }
 }
 
 int openListeningSocket(int port){
@@ -126,7 +136,7 @@ int openListeningSocket(int port){
     return socketfd;
 }
 
-int add_recv_request(int socket, long readlength){
+int add_recv_request(int socket, int id){
     struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
 
 //    struct msghdr* msg = malloc(sizeof(struct msghdr));
@@ -143,29 +153,30 @@ int add_recv_request(int socket, long readlength){
 
 //    req->message = msg;
     io_uring_prep_recvmsg(sqe,socket, NULL,0);
-    sqe->buf_group = BUF_GRPID;
+    sqe->buf_group = id;
     io_uring_sqe_set_flags(sqe, IOSQE_BUFFER_SELECT);
     return 1;
 }
 
-void resupply_buffer(struct io_uring_cqe* cqe, int offset, struct io_uring_buf_ring* br){
+void resupply_buffer(struct io_uring_cqe* cqe, int offset){
     unsigned int buffer_id;
 
-    buffer_id = cqe->flags >> IORING_CQE_BUFFER_SHIFT;
-    io_uring_buf_ring_add(br, buffers[buffer_id], BUFF_SIZE, buffer_id,
+    group_id = cqe->flags >> IORING_CQE_BUFFER_SHIFT;
+    io_uring_buf_ring_add(rings[group_id], buffers[buffer_id], BUFF_SIZE, buffer_id,
                           io_uring_buf_ring_mask(NUMBER_OF_BUFFERS), offset);
 }
 
 void startServer(int socketfd){
     struct io_uring_cqe* cqe;
     int start = 0;
-    struct io_uring_buf_ring* br;
-    br = initialize_buffers();
+    initialize_buffers();
 
     add_recv_request(socketfd,1500);
     io_uring_submit(&ring);
 
     printf("Entering server loop\n");
+
+    int current_group = 0;
     while(1){
         if(io_uring_wait_cqe(&ring, &cqe)){
             printf("ERROR WAITING\n");
@@ -179,9 +190,11 @@ void startServer(int socketfd){
 
         packetsReceived++;
         bytes_rec += cqe->res;
-        add_recv_request(socketfd,1500);
+        add_recv_request(socketfd,current_group);
+        current_group = (current_group+1) % NUMBER_OF_RINGS;
         io_uring_submit(&ring);
-        resupply_buffer(cqe,0,br);
+        cqe->big_cqe
+        resupply_buffer(cqe,0);
         io_uring_buf_ring_cq_advance(&ring,br,1);
     }
 }
