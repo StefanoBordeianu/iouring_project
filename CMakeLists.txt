@@ -12,15 +12,17 @@ add_executable(iouring_project
         garbageTests/io_uring/client/tcpClient.c
         garbageTests/io_uring/newServer/udpServer.c
         garbageTests/io_uring/client/udpClient.c
-        benchmarking/test/udpServer/standard/udpServer.c
+        benchmarking/test/io_uring/standard/standard_batching.c
         benchmarking/test/socket/server.c
         pktgen/newPacketGen/udpPacketGen.c
         pktgen/OldPacketGen/udpgen.c
-        benchmarking/test/udpServer/kernelPooling/udpServer.c
-        benchmarking/test/udpServer/submitAndWait/udpServer.c
-        benchmarking/test/udpServer/multishot/udpServer.c
-        benchmarking/test/udpServer/submitAndWait/registeredFile.c
-        benchmarking/test/udpServer/standard/registeredFile.c
-        benchmarking/test/udpServer/multishot/ex.c
-        benchmarking/test/udpServer/standard/provided.c
+        benchmarking/test/io_uring/kernelPooling/kernel_polling.c
+        benchmarking/test/io_uring/submitAndWait/submit_and_wait.c
+        benchmarking/test/io_uring/multishot/single_multishot.c
+        benchmarking/test/io_uring/standard/registeredFile.c
+        benchmarking/test/io_uring/multishot/ex.c
+        benchmarking/test/io_uring/multishot/multiple_multishot.c
+        benchmarking/test/io_uring/standard/standard_non_batching.c
+        benchmarking/test/io_uring/standard/standard_single_issue.c
+        benchmarking/test/io_uring/standard/standard_coopTaskrun.c
 )

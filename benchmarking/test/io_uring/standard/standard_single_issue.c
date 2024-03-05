@@ -4,7 +4,6 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
-#include <liburing/io_uring.h>
 #include <liburing.h>
 
 
@@ -16,7 +15,6 @@ struct io_uring ring;
 long packetsReceived;
 long bytes_rec;
 
-
 struct request{
     int type;
     struct msghdr* message;
@@ -24,11 +22,9 @@ struct request{
 
 struct args{
     int port;
-    int waiting_for;
     int duration;
     int size;
     int debug;
-    int batching;
 };
 
 struct args args;
@@ -39,20 +35,15 @@ void freemsg(struct msghdr * msg){
     free(msg);
 }
 
-int parseArgs(int argc, char* argv[]){
+void parseArgs(int argc, char* argv[]){
     int opt;
     args.port = 2020;
-    args.batching = 256;
     args.duration = 10;
-    args.waiting_for = 1;
 
-    while((opt =getopt(argc,argv,"hs:p:d:w:")) != -1) {
+    while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
         switch (opt) {
             case 'p':
                 args.port = atoi(optarg);
-                break;
-            case 'w':
-                args.waiting_for =  atoi(optarg);
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -107,47 +98,40 @@ int add_recv_request(int socket, long readlength){
     msg->msg_iov = iov;
     msg->msg_iovlen = 1;
 
+    req->type = EVENT_TYPE_RECV;
     req->message = msg;
-    io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-
-    io_uring_prep_recvmsg(sqe,0, msg,0);
-    //io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-
-    sqe->flags |= IOSQE_FIXED_FILE;
+    io_uring_prep_recvmsg(sqe,socket, msg,0);
     io_uring_sqe_set_data(sqe, req);
     return 1;
 }
 
 void startServer(int socketfd){
-    struct io_uring_cqe* cqe [args.waiting_for];
+    struct io_uring_cqe* cqe;
     int start = 0;
-    unsigned int packets_rec;
-    int rec;
-    printf("starting server\n");
-
-    for(int i=0;i<(args.waiting_for*2);i++)
-        add_recv_request(socketfd,1500);
+    add_recv_request(socketfd,1500);
+    io_uring_submit(&ring);
 
     printf("Entering server loop\n");
-    while (1) {
-        io_uring_submit_and_wait(&ring,args.waiting_for);
-        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.waiting_for);
+    while(1){
+        if(io_uring_wait_cqe(&ring, &cqe)){
+            printf("ERROR WAITING\n");
+            exit(-1);
+        }
+        struct request* req = io_uring_cqe_get_data(cqe);
 
-        if (!start) {
+        if(!start){
             start = 1;
             alarm(args.duration);
+            printf("alarm set\n");
         }
-        packetsReceived = packetsReceived + packets_rec;
-        for (int i = 0; i < packets_rec; i++) {
-            add_recv_request(socketfd, 1500);
-            struct request *req = io_uring_cqe_get_data(cqe[i]);
-            rec = cqe[i]->res;
-            bytes_rec += rec;
+        packetsReceived++;
+        bytes_rec += cqe->res;
+        add_recv_request(socketfd,1500);
+        io_uring_submit(&ring);
+        freemsg(req->message);
+        free(req);
 
-            freemsg(req->message);
-            free(req);
-        }
-        io_uring_cq_advance(&ring,packets_rec);
+        io_uring_cqe_seen(&ring, cqe);
     }
 }
 
@@ -157,7 +141,7 @@ void sig_handler(int signum){
     printf("Speed: %ld packets/second\n", speed);
     printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
     printf("Now closing\n\n");
-    FILE* file = fopen("waitRegisteredServerResults.txt","a");
+    FILE* file = fopen("standardServerResults.txt","a");
     fprintf(file, "%ld\n", speed);
     fprintf(file,"%f\n", ((double)(bytes_rec*8))/(args.duration * 1000000));
     fclose(file);
@@ -167,14 +151,18 @@ void sig_handler(int signum){
 
 int main(int argc, char *argv[]){
     int socketfd;
+    struct io_uring_params params;
 
     parseArgs(argc, argv);
     signal(SIGALRM,sig_handler);
 
-    io_uring_queue_init(32768,&ring,0);
-    socketfd = openListeningSocket(args.port);
-    io_uring_register_files(&ring,&socketfd,1);
+    memset(&params, 0, sizeof(params));
+    params.flags |= IORING_SETUP_SINGLE_ISSUER;
 
+    io_uring_queue_init_params(32768,&ring,&params);
+    socketfd = openListeningSocket(args.port);
+
+    printf("starting single issie standard server\n");
     startServer(socketfd);
 
 }

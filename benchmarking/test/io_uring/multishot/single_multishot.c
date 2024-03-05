@@ -16,6 +16,7 @@ struct io_uring ring;
 long packetsReceived;
 long bytes_rec;
 char** buffers;
+int* data_ids;
 
 struct request{
     int type;
@@ -135,6 +136,7 @@ void startServer(int socketfd){
     add_recv_request(socketfd);
     io_uring_submit(&ring);
     printf("entering server\n");
+
     while (1) {
         start:
         reaped = io_uring_peek_batch_cqe(&ring,cqe,args.numb_of_buffers);

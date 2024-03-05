@@ -22,7 +22,6 @@ struct request{
 
 struct args{
     int port;
-    int batching;
     int duration;
     int size;
     int debug;
@@ -39,16 +38,12 @@ void freemsg(struct msghdr * msg){
 void parseArgs(int argc, char* argv[]){
     int opt;
     args.port = 2020;
-    args.batching = 1;
     args.duration = 10;
 
     while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
         switch (opt) {
             case 'p':
                 args.port = atoi(optarg);
-                break;
-            case 'b':
-                args.batching =  atoi(optarg);
                 break;
             case 'd':
                 args.duration = atoi(optarg);
@@ -72,7 +67,7 @@ int openListeningSocket(int port){
         exit(-1);
     }
     if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-                       &opt,sizeof (opt))){
+                  &opt,sizeof (opt))){
         printf("SERVER: Socket options error\n");
         exit(-1);
     }
@@ -105,12 +100,7 @@ int add_recv_request(int socket, long readlength){
 
     req->type = EVENT_TYPE_RECV;
     req->message = msg;
-    io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-
-    io_uring_prep_recvmsg(sqe,0, msg,0);
-    //io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-
-    sqe->flags |= IOSQE_FIXED_FILE;
+    io_uring_prep_recvmsg(sqe,socket, msg,0);
     io_uring_sqe_set_data(sqe, req);
     return 1;
 }
@@ -128,64 +118,20 @@ void startServer(int socketfd){
             exit(-1);
         }
         struct request* req = io_uring_cqe_get_data(cqe);
-        switch (req->type) {
-            case EVENT_TYPE_RECV:
-                if(!start){
-                    start = 1;
-                    alarm(args.duration);
-                    printf("alarm set\n");
-                }
-                packetsReceived++;
-                bytes_rec += cqe->res;
-                add_recv_request(socketfd,1500);
-                io_uring_submit(&ring);
-                freemsg(req->message);
-                free(req);
-                break;
-        }
 
-        io_uring_cqe_seen(&ring, cqe);
-    }
-}
-
-void startBatchingServer(int socketfd){
-    struct io_uring_cqe* cqe [args.batching];
-    int start = 0;
-    unsigned int packets_rec;
-    int rec;
-
-    for(int i=0;i<args.batching;i++)
-        add_recv_request(socketfd,1500);
-    io_uring_submit(&ring);
-
-    printf("Entering server loop\n");
-    while (1) {
-        start:
-        packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.batching);
-        if (!packets_rec) {
-            goto start;
-        }
-        if (!start) {
+        if(!start){
             start = 1;
             alarm(args.duration);
+            printf("alarm set\n");
         }
-        packetsReceived = packetsReceived + packets_rec;
-        for (int i = 0; i < packets_rec; i++) {
-            add_recv_request(socketfd, 1024);
-            struct request* req = io_uring_cqe_get_data(cqe[i]);
-            rec = cqe[i]->res;
-            bytes_rec += rec;
-
-            if(args.debug && (packets_rec==args.batching))
-                printf("Emptied queue\n");
-
-
-            freemsg(req->message);
-            free(req);
-        }
-        io_uring_cq_advance(&ring,packets_rec);
+        packetsReceived++;
+        bytes_rec += cqe->res;
+        add_recv_request(socketfd,1500);
         io_uring_submit(&ring);
+        freemsg(req->message);
+        free(req);
 
+        io_uring_cqe_seen(&ring, cqe);
     }
 }
 
@@ -195,7 +141,7 @@ void sig_handler(int signum){
     printf("Speed: %ld packets/second\n", speed);
     printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
     printf("Now closing\n\n");
-    FILE* file = fopen("standardRegisteredServerResults.txt","a");
+    FILE* file = fopen("standardServerResults.txt","a");
     fprintf(file, "%ld\n", speed);
     fprintf(file,"%f\n", ((double)(bytes_rec*8))/(args.duration * 1000000));
     fclose(file);
@@ -211,16 +157,9 @@ int main(int argc, char *argv[]){
 
     io_uring_queue_init(32768,&ring,0);
     socketfd = openListeningSocket(args.port);
-    io_uring_register_files(&ring,&socketfd,1);
 
-    if(args.batching == 1){
-        printf("starting standard server\n");
-        startServer(socketfd);
-    }
-    else {
-        printf("starting batching server\n");
-        startBatchingServer(socketfd);
-    }
+    printf("starting standard server\n");
+    startServer(socketfd);
 
 }
 //
