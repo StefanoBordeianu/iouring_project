@@ -162,7 +162,7 @@ int main(int argc, char *argv[]){
     io_uring_queue_init_params(32768,&ring,&params);
     socketfd = openListeningSocket(args.port);
 
-    printf("starting single issie standard server\n");
+    printf("starting single issue standard server\n");
     startServer(socketfd);
 
 }

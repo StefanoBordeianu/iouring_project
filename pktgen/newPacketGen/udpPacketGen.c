@@ -46,7 +46,7 @@ int parseArgs(int argc, char* argv[]){
                 args.port = atoi(optarg);
                 break;
             case 'r':
-                args.rate =  (strtod(optarg,NULL) / 8) ; //NO IDEA WHY BUT IT NEEDS 10*
+                args.rate =  (strtod(optarg,NULL) / 8) ;
                 break;
             case 'd':
                 args.duration = atoi(optarg);

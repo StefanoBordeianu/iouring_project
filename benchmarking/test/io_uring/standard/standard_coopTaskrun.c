@@ -109,6 +109,7 @@ void startServer(int socketfd){
     struct io_uring_cqe* cqe;
     int start = 0;
     add_recv_request(socketfd,args.size);
+      printf("before submitting\n");
     io_uring_submit(&ring);
 
     printf("Entering server loop\n");
@@ -158,6 +159,7 @@ int main(int argc, char *argv[]){
 
     memset(&params, 0, sizeof(params));
     params.flags |= IORING_SETUP_COOP_TASKRUN;
+    params.flags |= IORING_SETUP_TASKRUN_FLAG;
 
     io_uring_queue_init_params(32768,&ring,&params);
     socketfd = openListeningSocket(args.port);

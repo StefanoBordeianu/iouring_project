@@ -154,7 +154,7 @@ void sig_handler(int signum){
     printf("\nReceived: %ld packets of size %d\n",packetsReceived, args.size);
     long speed = packetsReceived/args.duration;
     printf("Speed: %ld packets/second\n", speed);
-    printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
+    printf("Rate: %f Mb/s\n", ((float)bytes_rec*8)/((float)args.duration * 1000000));
     printf("Now closing\n\n");
     FILE* file = fopen("standardServerResults.txt","a");
     fprintf(file, "%ld\n", speed);
