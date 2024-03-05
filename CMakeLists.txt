@@ -25,4 +25,5 @@ add_executable(iouring_project
         benchmarking/test/io_uring/standard/standard_non_batching.c
         benchmarking/test/io_uring/standard/standard_single_issue.c
         benchmarking/test/io_uring/standard/standard_coopTaskrun.c
+        benchmarking/test/io_uring/standard/standard_single_and_coop.c
 )
