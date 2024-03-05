@@ -83,7 +83,6 @@ int openListeningSocket(int port){
 }
 
 int add_recv_request(int socket, long readlength){
-      printf("1\n");
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
 
       struct request* req = malloc(sizeof(struct request));
@@ -91,7 +90,6 @@ int add_recv_request(int socket, long readlength){
       struct msghdr* msg = malloc(sizeof(struct msghdr));
       struct iovec* iov = malloc(sizeof(struct iovec));
 
-      printf("A\n");
       memset(msg, 0, sizeof(struct msghdr));
       memset(iov,0,sizeof(struct iovec));
       iov->iov_base = malloc(readlength);
@@ -101,12 +99,10 @@ int add_recv_request(int socket, long readlength){
       msg->msg_iov = iov;
       msg->msg_iovlen = 1;
 
-      printf("B\n");
       req->type = EVENT_TYPE_RECV;
       req->message = msg;
-      printf("C\n");
+
       io_uring_prep_recvmsg(sqe,socket, msg,0);
-      printf("D\n");
       io_uring_sqe_set_data(sqe, req);
       return 1;
 }
@@ -115,7 +111,6 @@ void startServer(int socketfd){
       struct io_uring_cqe* cqe;
       int start = 0;
       add_recv_request(socketfd,args.size);
-      printf("before submitting\n");
       io_uring_submit(&ring);
 
       printf("Entering server loop\n");
