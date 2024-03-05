@@ -117,7 +117,7 @@ void startBatchingServer(int socketfd){
     int rec;
 
     for(int i=0;i<args.batching;i++)
-        add_recv_request(socketfd,1500);
+        add_recv_request(socketfd,args.size);
     io_uring_submit(&ring);
 
     printf("Entering server loop\n");
@@ -132,7 +132,7 @@ void startBatchingServer(int socketfd){
         }
         packetsReceived = packetsReceived + packets_rec;
         for (int i = 0; i < packets_rec; i++) {
-            add_recv_request(socketfd, 1500);
+            add_recv_request(socketfd, args.size);
             struct request* req = io_uring_cqe_get_data(cqe[i]);
             rec = cqe[i]->res;
             bytes_rec += rec;

@@ -108,7 +108,7 @@ int add_recv_request(int socket, long readlength){
 void startServer(int socketfd){
     struct io_uring_cqe* cqe;
     int start = 0;
-    add_recv_request(socketfd,1500);
+    add_recv_request(socketfd,args.size);
     io_uring_submit(&ring);
 
     printf("Entering server loop\n");
@@ -126,7 +126,7 @@ void startServer(int socketfd){
         }
         packetsReceived++;
         bytes_rec += cqe->res;
-        add_recv_request(socketfd,1500);
+        add_recv_request(socketfd,args.size);
         io_uring_submit(&ring);
         freemsg(req->message);
         free(req);
