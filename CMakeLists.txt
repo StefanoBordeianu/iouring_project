@@ -19,7 +19,7 @@ add_executable(iouring_project
         benchmarking/test/io_uring/kernelPooling/kernel_polling.c
         benchmarking/test/io_uring/submitAndWait/submit_and_wait.c
         benchmarking/test/io_uring/multishot/single_multishot.c
-        benchmarking/test/io_uring/standard/registeredFile.c
+        benchmarking/test/io_uring/standard/standard_registered_file.c
         benchmarking/test/io_uring/multishot/ex.c
         benchmarking/test/io_uring/multishot/multiple_multishot.c
         benchmarking/test/io_uring/standard/standard_non_batching.c
