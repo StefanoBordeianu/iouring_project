@@ -146,7 +146,7 @@ void startServer(int socketfd){
       int id;
       struct io_uring_buf_ring* br[args.numb_of_groups];
 
-      for(int i=0; i<args.numb_of_buffers;i++){
+      for(int i=0; i<args.numb_of_groups;i++){
             br[i] = initialize_buffers(i);
             add_recv_request(socketfd,i);
       }
