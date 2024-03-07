@@ -29,7 +29,7 @@ struct args{
     int size;
     int debug;
     int buffer_size;
-    int numb_of_groups
+    int numb_of_groups;
 };
 
 struct args args;
