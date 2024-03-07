@@ -168,10 +168,16 @@ void startServer(int socketfd){
 
                   if (!(cqe[i]->flags & IORING_CQE_F_MORE)) {
                         if(args.debug)
-                              printf("readding multishot\n");
+                              printf("readding multishot getting data\n");
                         group_id = (int*) io_uring_cqe_get_data(cqe[i]);
+                        if(args.debug)
+                              printf("readding multishot adding request\n");
                         add_recv_request(socketfd,*group_id);
+                        if(args.debug)
+                              printf("readding multishot submitting\n");
                         io_uring_submit(&ring);
+                        if(args.debug)
+                              printf("readding multishot completed\n");
                         continue;
                   }
                   if(cqe[i]->res == -ENOBUFS){
