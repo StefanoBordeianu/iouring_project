@@ -143,7 +143,7 @@ void startServer(int socketfd){
       struct io_uring_cqe* cqe[args.numb_of_buffers];
       unsigned int reaped, buffer_id;
       int start = 0;
-      int id;
+      int* group_id;
       struct io_uring_buf_ring* br[args.numb_of_groups];
 
       for(int i=0; i<args.numb_of_groups;i++){
@@ -165,13 +165,14 @@ void startServer(int socketfd){
             }
             packetsReceived += reaped;
             for (int i = 0; i < reaped; i++) {
-                  id = *(int*) io_uring_cqe_get_data(cqe[i]);
 
                   if (!(cqe[i]->flags & IORING_CQE_F_MORE)) {
                         if(args.debug)
                               printf("readding multishot\n");
-                        add_recv_request(socketfd,id);
+                        group_id = (int*) io_uring_cqe_get_data(cqe[i]);
+                        add_recv_request(socketfd,*group_id);
                         io_uring_submit(&ring);
+                        continue;
                   }
                   if(cqe[i]->res == -ENOBUFS){
                         if(args.debug)
@@ -179,9 +180,10 @@ void startServer(int socketfd){
                         continue;
                   }
 
+                  group_id = (int*) io_uring_cqe_get_data(cqe[i]);
                   bytes_rec += cqe[i]->res;
                   buffer_id = cqe[i]->flags >> IORING_CQE_BUFFER_SHIFT;
-                  io_uring_buf_ring_add(br[i], buffers[buffer_id], BUFF_SIZE, buffer_id,
+                  io_uring_buf_ring_add(br[group_id], buffers[buffer_id], BUFF_SIZE, buffer_id,
                                         io_uring_buf_ring_mask(args.numb_of_buffers), 1);
                   io_uring_buf_ring_advance(br[i], 1);
             }

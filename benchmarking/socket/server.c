@@ -35,7 +35,7 @@ int init() {
 
       if (bind(socketfd, (struct sockaddr*)&add,
                sizeof(add))< 0){
-            printf("SERVER: Error binding\n");
+            printf("SERVER: Error bTinding\n");
             return -1;
       }
       return 1;
