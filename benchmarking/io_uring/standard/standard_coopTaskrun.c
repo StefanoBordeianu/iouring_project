@@ -13,7 +13,6 @@
 
 struct io_uring ring;
 long packetsReceived;
-long bytes_rec;
 
 struct request{
     int type;
@@ -25,6 +24,7 @@ struct args{
     int duration;
     int size;
     int debug;
+    int test
 };
 
 struct args args;
@@ -39,8 +39,9 @@ void parseArgs(int argc, char* argv[]){
       int opt;
       args.port = 2020;
       args.duration = 10;
+      args.test = 0;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:t")) != -1) {
             switch (opt) {
                   case 'p':
                         args.port = atoi(optarg);
@@ -51,10 +52,12 @@ void parseArgs(int argc, char* argv[]){
                   case 's':
                         args.size = atoi(optarg);
                         break;
+                  case 't':
+                        args.test = 1;
+                        break;
             }
       }
 }
-
 
 int openListeningSocket(int port){
       int socketfd;
@@ -127,7 +130,6 @@ void startServer(int socketfd){
                   printf("alarm set\n");
             }
             packetsReceived++;
-            bytes_rec += cqe->res;
             add_recv_request(socketfd,args.size);
             io_uring_submit(&ring);
             freemsg(req->message);
@@ -140,13 +142,16 @@ void startServer(int socketfd){
 void sig_handler(int signum){
       printf("\nReceived: %ld packets of size %d\n",packetsReceived, args.size);
       long speed = packetsReceived/args.duration;
+      long bytes_rec = packetsReceived*args.size;
       printf("Speed: %ld packets/second\n", speed);
       printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
       printf("Now closing\n\n");
-      FILE* file = fopen("standardServerResults.txt","a");
-      fprintf(file, "%ld\n", speed);
-      fprintf(file,"%f\n", ((double)(bytes_rec*8))/(args.duration * 1000000));
-      fclose(file);
+      if(args.test) {
+            FILE *file = fopen("coop_res.txt", "a");
+            fprintf(file, "%ld\n", speed);
+            fprintf(file, "%f\n", ((double) (bytes_rec * 8)) / (args.duration * 1000000));
+            fclose(file);
+      }
       io_uring_queue_exit(&ring);
       exit(0);
 }
