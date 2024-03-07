@@ -24,7 +24,7 @@ struct args{
     int duration;
     int size;
     int debug;
-    int test
+    int test;
 };
 
 struct args args;
