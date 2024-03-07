@@ -132,6 +132,8 @@ int openListeningSocket(int port){
 
 int add_recv_request(int socket, int id){
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
+      if(sqe==NULL)
+            printf("NO SQEs available");
       io_uring_prep_recv_multishot(sqe, socket, NULL,0,0);
       sqe->buf_group = id;
       io_uring_sqe_set_data(sqe,&data_ids[id]);
