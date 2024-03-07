@@ -183,7 +183,7 @@ void startServer(int socketfd){
                   group_id = (int*) io_uring_cqe_get_data(cqe[i]);
                   bytes_rec += cqe[i]->res;
                   buffer_id = cqe[i]->flags >> IORING_CQE_BUFFER_SHIFT;
-                  io_uring_buf_ring_add(br[group_id], buffers[buffer_id], BUFF_SIZE, buffer_id,
+                  io_uring_buf_ring_add(br[*group_id], buffers[buffer_id], BUFF_SIZE, buffer_id,
                                         io_uring_buf_ring_mask(args.numb_of_buffers), 1);
                   io_uring_buf_ring_advance(br[i], 1);
             }
