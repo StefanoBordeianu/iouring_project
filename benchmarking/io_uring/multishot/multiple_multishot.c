@@ -161,6 +161,7 @@ void startServer(int socketfd){
             if (!start) {
                   start = 1;
                   alarm(args.duration);
+                  printf("Alarm set\n");
             }
             packetsReceived += reaped;
             for (int i = 0; i < reaped; i++) {
