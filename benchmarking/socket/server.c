@@ -13,6 +13,7 @@ long packetsReceived = 0;
 int duration = 5;
 int port = 8080;
 long bytes_rec;
+int size;
 
 int init() {
 
@@ -41,10 +42,10 @@ void serverLoop(){
     socklen_t len = sizeof(addr);
     int n;
     int start = 0;
-    char buffer [70000];
+    char buffer [size];
 
     while(1){
-        n = recvfrom(socketfd, (char *)buffer, 70000,
+        n = recvfrom(socketfd, (char *)buffer, size,
                      MSG_WAITALL, ( struct sockaddr *) &addr,
                      &len);
         if(!start){
@@ -82,6 +83,8 @@ int main(int argc, char *argv[]){
     if(argc >=3)
         duration = atoi(argv[2]);
 
+	if(argc >=3)
+        size = atoi(argv[3]);
 
     init();
     serverLoop();
