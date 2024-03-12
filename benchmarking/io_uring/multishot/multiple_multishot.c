@@ -171,7 +171,7 @@ void startServer(int socketfd){
                   if (!(cqe[i]->flags & IORING_CQE_F_MORE)) {
                         if(args.debug)
                               printf("readding multishot getting data\n");
-                        group_id = (int*) io_uring_cqe_get_data(cqe[i]);
+                        group_id = io_uring_cqe_get_data(cqe[i]);
                         if(args.debug)
                               printf("readding multishot data found %d\n",*group_id);
                         if(args.debug)
