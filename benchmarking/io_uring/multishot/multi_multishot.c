@@ -77,7 +77,7 @@ void initialize_ids(){
 struct io_uring_buf_ring* initialize_buffers(int id){
 
       struct io_uring_buf_reg reg = {};
-      struct io_uring_buf_ring *br;
+      struct io_uring_buf_ring* br;
       int i;
       printf("SIZE: %ld\nSCpagesize:  %ld\n",(NUMBER_OF_BUFFERS * sizeof(struct io_uring_buf)),sysconf(_SC_PAGESIZE));
 
@@ -142,63 +142,7 @@ int add_recv_request(int socket, int id){
 }
 
 void startServer(int socketfd){
-      struct io_uring_cqe* cqe[args.numb_of_buffers];
-      unsigned int reaped, buffer_id;
-      int start = 0;
-      int* group_id;
-      struct io_uring_buf_ring* br[args.numb_of_groups];
 
-      for(int i=0; i<args.numb_of_groups;i++){
-            br[i] = initialize_buffers(i);
-            add_recv_request(socketfd,i);
-      }
-
-      io_uring_submit(&ring);
-      printf("entering server\n");
-      while (1) {
-            reaped = io_uring_peek_batch_cqe(&ring,cqe,args.numb_of_buffers);
-            if(!reaped){
-                  continue;
-            }
-            if (!start) {
-                  start = 1;
-                  alarm(args.duration);
-                  printf("Alarm set\n");
-            }
-            packetsReceived += reaped;
-            for (int i = 0; i < reaped; i++) {
-
-                  if (!(cqe[i]->flags & IORING_CQE_F_MORE)) {
-                        if(args.debug)
-                              printf("readding multishot getting data\n");
-                        group_id = (int*) io_uring_cqe_get_data(cqe[i]);
-                        if(args.debug)
-                              printf("readding multishot data found %d\n",*group_id);
-                        if(args.debug)
-                              printf("readding multishot adding request\n");
-                        add_recv_request(socketfd,*group_id);
-                        if(args.debug)
-                              printf("readding multishot submitting\n");
-                        io_uring_submit(&ring);
-                        if(args.debug)
-                              printf("readding multishot completed\n");
-                        continue;
-                  }
-                  if(cqe[i]->res == -ENOBUFS){
-                        if(args.debug)
-                              printf("not enough buffers multishot\n");
-                        continue;
-                  }
-
-                  group_id = (int*) io_uring_cqe_get_data(cqe[i]);
-                  bytes_rec += cqe[i]->res;
-                  buffer_id = cqe[i]->flags >> IORING_CQE_BUFFER_SHIFT;
-                  io_uring_buf_ring_add(br[*group_id], buffers[buffer_id], BUFF_SIZE, buffer_id,
-                                        io_uring_buf_ring_mask(args.numb_of_buffers), 1);
-                  io_uring_buf_ring_advance(br[i], 1);
-            }
-            io_uring_cq_advance(&ring,reaped);
-      }
 }
 
 void sig_handler(int signum){
@@ -207,16 +151,6 @@ void sig_handler(int signum){
       printf("Speed: %ld packets/second\n", speed);
       printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
       printf("Now closing\n\n");
-      FILE* file;
-      if(args.numb_of_buffers == 2)
-            file = fopen("multiServerResults2.txt","a");
-      else if(args.numb_of_buffers == 64)
-            file = fopen("multiServerResults64.txt","a");
-      else
-            file = fopen("multiServerResults2048.txt","a");
-      fprintf(file, "%ld\n", speed);
-      fprintf(file,"%f\n", ((double)(bytes_rec*8))/(args.duration * 1000000));
-      fclose(file);
       io_uring_queue_exit(&ring);
       exit(0);
 }

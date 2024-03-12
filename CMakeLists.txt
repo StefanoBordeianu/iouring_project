@@ -28,4 +28,5 @@ add_executable(iouring_project
         benchmarking/io_uring/standard/standard_single_and_coop.c
         benchmarking/io_uring/standard/standard_registered_file.c
         benchmarking/io_uring/standard/standard_non_batching.c
+        benchmarking/io_uring/multishot/multi_multishot.c
 )
