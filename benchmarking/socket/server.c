@@ -25,10 +25,6 @@ int init() {
             return -1;
       }
 
-      int optval = 1;
-      setsockopt(socketfd, SOL_SOCKET, SO_BUSY_POLL,
-                 (const void *)&optval, sizeof(int));
-
       add.sin_port = htons(port);
       add.sin_family = AF_INET;
       add.sin_addr.s_addr = INADDR_ANY;
