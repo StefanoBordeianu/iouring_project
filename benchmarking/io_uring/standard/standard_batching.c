@@ -120,7 +120,7 @@ void startBatchingServer(int socketfd){
       unsigned int packets_rec;
       int rec;
 
-      for(int i=0;i<args.batching;i++)
+      for(int i=0;i<args.batching*4;i++)
             add_recv_request(socketfd,args.size);
 
 
@@ -146,7 +146,7 @@ void startBatchingServer(int socketfd){
                   freemsg(req->message);
                   free(req);
             }
-            
+
             io_uring_cq_advance(&ring,packets_rec);
 
       }
