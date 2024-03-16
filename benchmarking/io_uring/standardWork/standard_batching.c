@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <liburing.h>
-
+#include <time.h>
 
 #define EVENT_TYPE_ACCEPT 0
 #define EVENT_TYPE_RECV 1
@@ -13,6 +13,8 @@
 
 struct io_uring ring;
 long packetsReceived;
+int* glob_arr;
+int glob_len;
 
 struct request{
     int type;
@@ -64,6 +66,25 @@ void parseArgs(int argc, char* argv[]){
       }
 }
 
+void init_glob_array(){
+
+      srand(time(NULL));
+
+      glob_arr = malloc(sizeof(int)*glob_len);
+      for(int i=0;i<glob_len;i++){
+            glob_arr[i] = rand()%1500;
+      }
+}
+
+
+void do_work(){
+      int to_search = rand()%1500;
+
+      for(int i=0;i<glob_len;i++){
+            if(glob_arr[i] == to_search)
+                  break;
+      }
+}
 
 int openListeningSocket(int port){
       int socketfd;
@@ -144,6 +165,7 @@ void startBatchingServer(int socketfd){
                   if(args.debug && (packets_rec==args.batching))
                         printf("Emptied queue\n");
 
+                  do_work();
                   freemsg(req->message);
                   free(req);
             }
@@ -179,6 +201,7 @@ int main(int argc, char *argv[]){
       socketfd = openListeningSocket(args.port);
 
       printf("starting batching standard server\n");
+      init_glob_array();
       startBatchingServer(socketfd);
 
 

@@ -59,7 +59,6 @@ void parseArgs(int argc, char* argv[]){
       }
 }
 
-
 int openListeningSocket(int port){
       int socketfd;
       int opt = 1;
