@@ -128,7 +128,6 @@ void startServer(int socketfd){
             }
             packetsReceived++;
             add_recv_request(socketfd,args.size);
-            io_uring_submit(&ring);
             freemsg(req->message);
             free(req);
 
