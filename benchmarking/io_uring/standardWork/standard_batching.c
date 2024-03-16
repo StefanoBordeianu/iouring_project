@@ -204,7 +204,6 @@ int main(int argc, char *argv[]){
       init_glob_array();
       startBatchingServer(socketfd);
 
-
 }
 //
 // Created by ebpf on 01/10/23.

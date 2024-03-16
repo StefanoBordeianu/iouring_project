@@ -30,4 +30,5 @@ add_executable(iouring_project
         benchmarking/io_uring/standard/standard_non_batching.c
         benchmarking/io_uring/multishot/multi_multishot.c
         benchmarking/io_uring/standardWork/standard_batching.c
+        benchmarking/io_uring/standardWork/socket.c
 )
