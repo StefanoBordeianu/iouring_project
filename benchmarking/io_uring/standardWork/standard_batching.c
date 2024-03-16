@@ -44,7 +44,7 @@ void parseArgs(int argc, char* argv[]){
       args.batching = 1;
       args.duration = 10;
       args.test = 0;
-      glob_len = 1000;
+      glob_len = 2000;
 
 
       while((opt =getopt(argc,argv,"hs:p:d:b:t")) != -1) {
@@ -74,13 +74,13 @@ void init_glob_array(){
 
       glob_arr = malloc(sizeof(int)*glob_len);
       for(int i=0;i<glob_len;i++){
-            glob_arr[i] = rand()%1500;
+            glob_arr[i] = rand()%2500;
       }
 }
 
 
 void do_work(){
-      int to_search = rand()%1500;
+      int to_search = rand()%2500;
 
       for(int i=0;i<glob_len;i++){
             if(glob_arr[i] == to_search)

@@ -110,7 +110,7 @@ int main(int argc, char *argv[]){
       if(argc >=3)
             size = atoi(argv[3]);
 
-      glob_len = 1000;
+      glob_len = 2000;
 
       init();
       init_glob_array();
