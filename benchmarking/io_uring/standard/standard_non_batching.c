@@ -86,38 +86,26 @@ int openListeningSocket(int port){
       return socketfd;
 }
 
-//int add_recv_request(int socket, long readlength){
-//      struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
-//      struct request* req = malloc(sizeof(struct request));
-//
-//      struct msghdr* msg = malloc(sizeof(struct msghdr));
-//      struct iovec* iov = malloc(sizeof(struct iovec));
-//
-//      memset(msg, 0, sizeof(struct msghdr));
-//      memset(iov,0,sizeof(struct iovec));
-//      iov->iov_base = malloc(readlength);
-//      iov->iov_len = readlength;
-//      msg->msg_name = NULL;
-//      msg->msg_namelen = 0;
-//      msg->msg_iov = iov;
-//      msg->msg_iovlen = 1;
-//
-//      req->type = EVENT_TYPE_RECV;
-//      req->message = msg;
-//      io_uring_prep_recvmsg(sqe,socket, msg,0);
-//      io_uring_prep_recvmsg(sqe,socket, msg,0);
-//      io_uring_sqe_set_data(sqe, req);
-//      return 1;
-//}
-
 int add_recv_request(int socket, long readlength){
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
       struct request* req = malloc(sizeof(struct request));
 
-      req->message = malloc(readlength);
+      struct msghdr* msg = malloc(sizeof(struct msghdr));
+      struct iovec* iov = malloc(sizeof(struct iovec));
+
+      memset(msg, 0, sizeof(struct msghdr));
+      memset(iov,0,sizeof(struct iovec));
+      iov->iov_base = malloc(readlength);
+      iov->iov_len = readlength;
+      msg->msg_name = NULL;
+      msg->msg_namelen = 0;
+      msg->msg_iov = iov;
+      msg->msg_iovlen = 1;
 
       req->type = EVENT_TYPE_RECV;
-      io_uring_prep_recv(sqe,socket, &req->message,readlength,0);
+      req->message = msg;
+      io_uring_prep_recvmsg(sqe,socket, msg,0);
+      io_uring_prep_recvmsg(sqe,socket, msg,0);
       io_uring_sqe_set_data(sqe, req);
       return 1;
 }
@@ -141,8 +129,7 @@ void startServer(int socketfd){
             }
             packetsReceived++;
             add_recv_request(socketfd,args.size);
-            //freemsg(req->message);
-            //free(req->message);
+            freemsg(req->message);
             free(req);
 
             io_uring_cqe_seen(&ring, cqe);
