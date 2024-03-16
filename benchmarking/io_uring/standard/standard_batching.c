@@ -120,7 +120,7 @@ void startBatchingServer(int socketfd){
       unsigned int packets_rec;
       int rec;
 
-      for(int i=0;i<args.batching*4;i++)
+      for(int i=0;i<32000;i++)
             add_recv_request(socketfd,args.size);
 
 
