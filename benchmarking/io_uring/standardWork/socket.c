@@ -45,13 +45,13 @@ void init_glob_array(){
 
       glob_arr = malloc(sizeof(int)*glob_len);
       for(int i=0;i<glob_len;i++){
-            glob_arr[i] = rand()%1500;
+            glob_arr[i] = rand()%25000;
       }
 }
 
 
 void do_work(){
-      int to_search = rand()%1500;
+      int to_search = rand()%25000;
 
       for(int i=0;i<glob_len;i++){
             if(glob_arr[i] == to_search)
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]){
       if(argc >=3)
             size = atoi(argv[3]);
 
-      glob_len = 2000;
+      glob_len = 20000;
 
       init();
       init_glob_array();
