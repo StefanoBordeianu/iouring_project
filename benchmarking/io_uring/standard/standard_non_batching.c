@@ -114,13 +114,11 @@ void startServer(int socketfd){
       int start = 0;
       add_recv_request(socketfd,args.size);
       io_uring_submit(&ring);
-
       printf("Entering server loop\n");
+
       while(1){
-            if(io_uring_wait_cqe(&ring, &cqe)){
-                  printf("ERROR WAITING\n");
-                  exit(-1);
-            }
+            io_uring_submit_and_wait(&ring,1);
+            io_uring_peek_cqe(&ring,&cqe);
             struct request* req = io_uring_cqe_get_data(cqe);
 
             if(!start){
