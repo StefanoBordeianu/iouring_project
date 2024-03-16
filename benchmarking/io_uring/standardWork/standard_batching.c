@@ -44,6 +44,8 @@ void parseArgs(int argc, char* argv[]){
       args.batching = 1;
       args.duration = 10;
       args.test = 0;
+      glob_len = 1000;
+
 
       while((opt =getopt(argc,argv,"hs:p:d:b:t")) != -1) {
             switch (opt) {

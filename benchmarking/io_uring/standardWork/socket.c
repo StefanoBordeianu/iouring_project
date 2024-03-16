@@ -77,6 +77,7 @@ void serverLoop(){
             }
             bytes_rec += n;
             packetsReceived++;
+            do_work();
       }
 
 }
@@ -108,6 +109,8 @@ int main(int argc, char *argv[]){
 
       if(argc >=3)
             size = atoi(argv[3]);
+
+      glob_len = 1000;
 
       init();
       init_glob_array();
