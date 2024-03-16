@@ -142,7 +142,7 @@ void startServer(int socketfd){
             packetsReceived++;
             add_recv_request(socketfd,args.size);
             //freemsg(req->message);
-            free(req->message);
+            //free(req->message);
             free(req);
 
             io_uring_cqe_seen(&ring, cqe);
