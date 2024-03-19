@@ -155,6 +155,8 @@ void startServer(int socketfd){
                   if(cqe[i]->res == -ENOBUFS){
                         if(args.debug)
                               printf("readding multishot\n");
+                        add_recv_request(socketfd);
+                        io_uring_submit(&ring);
                         continue;
                   }
                   bytes_rec += cqe[i]->res;
