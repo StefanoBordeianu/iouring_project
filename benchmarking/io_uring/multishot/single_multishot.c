@@ -120,9 +120,10 @@ int openListeningSocket(int port){
 
 int add_recv_request(int socket){
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
-      io_uring_prep_recv_multishot(sqe, socket, NULL,0,0);
+      io_uring_prep_recv_multishot(sqe, 0, NULL,0,0);
       sqe->buf_group = BUF_GRPID;
       io_uring_sqe_set_flags(sqe, IOSQE_BUFFER_SELECT);
+      io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
       return 1;
 }
 
@@ -197,6 +198,7 @@ int main(int argc, char *argv[]){
 
       io_uring_queue_init(32768,&ring,0);
       socketfd = openListeningSocket(args.port);
+      io_uring_register_files(&ring,&socketfd,1);
 
 
       startServer(socketfd);
