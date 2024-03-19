@@ -138,7 +138,7 @@ void startServer(int socketfd){
       printf("entering server\n");
 
       while (1) {
-            io_uring_submit_and_wait(&ring,100);
+            io_uring_submit_and_wait(&ring,args.numb_of_buffers/2);
             reaped = io_uring_peek_batch_cqe(&ring,cqe,args.numb_of_buffers);
             if (!start) {
                   start = 1;
