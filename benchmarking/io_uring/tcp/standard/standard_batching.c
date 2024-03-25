@@ -70,14 +70,9 @@ int openListeningSocket(int port){
       int opt = 1;
       struct sockaddr_in add;
 
-      socketfd = socket(AF_INET, SOCK_DGRAM, 0);
+      socketfd = socket(AF_INET, SOCK_STREAM, 0);
       if(socketfd < 0){
             printf("SERVER: Error while creating the socket\n");
-            exit(-1);
-      }
-      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-                    &opt,sizeof (opt))){
-            printf("SERVER: Socket options error\n");
             exit(-1);
       }
 
@@ -115,11 +110,30 @@ int add_recv_request(int socket, long readlength){
       return 1;
 }
 
-void startBatchingServer(int socketfd){
+int add_accept(int sock){
+      struct io_uring_sqe* sqe;
+      struct sockaddr_in add;
+      long len = sizeof(add);
+
+      add.sin_port = htons(args.port);
+      add.sin_family = AF_INET;
+      add.sin_addr.s_addr = INADDR_ANY;
+
+      sqe = io_uring_get_sqe(&ring);
+      io_uring_prep_accept(sqe,sock,(struct sockaddr*)&add, (socklen_t *) &len,0);
+      io_uring_submit(&ring);
+}
+
+void startBatchingServer(int sock){
       struct io_uring_cqe* cqe [args.batching];
       int start = 0;
       unsigned int packets_rec;
       int rec;
+      int socketfd;
+
+      add_accept(sock);
+      io_uring_wait_cqe(&ring,cqe);
+      socketfd = cqe[0]->res;
 
       for(int i=0;i<10000;i++)
             add_recv_request(socketfd,args.size);
