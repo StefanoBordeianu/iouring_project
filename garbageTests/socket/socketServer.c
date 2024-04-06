@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#define PORT 8080
+#define PORT 2020
 
 int init() {
       int socketfd, connected_socket_fd;
