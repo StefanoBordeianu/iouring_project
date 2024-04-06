@@ -153,7 +153,7 @@ void startBatchingServer(int sock){
                   add_recv_request(socketfd, args.size);
                   struct request* req = io_uring_cqe_get_data(cqe);
 
-                  printf("received %ld\n",packetsReceived);
+                  //printf("received %ld\n",packetsReceived);
                   free((void*)cqe->user_data);
             }
 
