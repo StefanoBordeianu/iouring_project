@@ -73,15 +73,27 @@ int openListeningSocket(int port){
       socketfd = socket(AF_INET, SOCK_STREAM, 0);
       if(socketfd < 0){
             printf("SERVER: Error while creating the socket\n");
-            exit(-1);
+            return -1;
+      }
+      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+                    &opt,sizeof (opt))){
+            printf("SERVER: Socket options error\n");
+            return -1;
       }
 
-      add.sin_port = htons(port);
+      add.sin_port = htons(args.port);
       add.sin_family = AF_INET;
       add.sin_addr.s_addr = INADDR_ANY;
-      if(bind(socketfd,(struct sockaddr *)&add, sizeof(add)) < 0){
-            perror("bind()");
-            exit(-1);
+
+      if (bind(socketfd, (struct sockaddr*)&add,
+               sizeof(add))< 0){
+            printf("SERVER: Error binding\n");
+            return -1;
+      }
+
+      if(listen(socketfd,3)){
+            printf("SERVER: Error listening\n");
+            return -1;
       }
       return socketfd;
 }
