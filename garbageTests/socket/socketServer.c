@@ -3,11 +3,14 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 
 #define PORT 2020
 
+long i=0;
+int socketfd,connected_socket_fd;
+
 int init() {
-      int socketfd, connected_socket_fd;
       long bytes_sen, rec;
       struct sockaddr_in add;
       long len = sizeof(add);
@@ -48,20 +51,27 @@ int init() {
             return -1;
       }
 
-      for(int i=0;i<1000;i++) {
+
+      int start = 0;
+      while(1){
+            if(!start){
+                  alarm(10);
+                  start = 1;
+            }
             rec = recv(connected_socket_fd, rec_buff, 1024, 0);
+            i++;
             if (rec < 0) {
                   printf("SERVER: Error receiving\n");
                   return -1;
             }
-            printf("received %d\n",i);
       }
+}
 
+void sig_handler(int signum){
+      printf("\nReceived: %ld packets\n",i);
       printf("SERVER: IM NOW CLOSING\n");
       close(connected_socket_fd);
       shutdown(socketfd,SHUT_RDWR);
-
-      return 1;
 }
 
 int main(){
@@ -69,6 +79,7 @@ int main(){
 
       int res;
 
+      signal(SIGALRM,sig_handler);
       res = init();
       return res;
 }
