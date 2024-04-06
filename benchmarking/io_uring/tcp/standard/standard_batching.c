@@ -75,11 +75,11 @@ int openListeningSocket(int port){
             printf("SERVER: Error while creating the socket\n");
             return -1;
       }
-      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-                    &opt,sizeof (opt))){
-            printf("SERVER: Socket options error\n");
-            return -1;
-      }
+//      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+//                    &opt,sizeof (opt))){
+//            printf("SERVER: Socket options error\n");
+//            return -1;
+//      }
 
       add.sin_port = htons(args.port);
       add.sin_family = AF_INET;
@@ -91,7 +91,7 @@ int openListeningSocket(int port){
             return -1;
       }
 
-      if(listen(socketfd,3)){
+      if(listen(socketfd,100)){
             printf("SERVER: Error listening\n");
             return -1;
       }
@@ -153,7 +153,7 @@ void startBatchingServer(int sock){
                   add_recv_request(socketfd, args.size);
                   struct request* req = io_uring_cqe_get_data(cqe);
 
-                  printf("received %ld\n",packetsReceived);
+                  //printf("received %ld\n",packetsReceived);
                   free((void*)cqe->user_data);
             }
 
@@ -168,12 +168,6 @@ void sig_handler(int signum){
       printf("Speed: %ld packets/second\n", speed);
       printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
       printf("Now closing\n\n");
-      if(args.test) {
-            FILE *file = fopen("batching_res.txt", "a");
-            fprintf(file, "%ld\n", speed);
-            fprintf(file, "%f\n", ((double) (bytes_rec * 8)) / (args.duration * 1000000));
-            fclose(file);
-      }
       io_uring_queue_exit(&ring);
       exit(0);
 }
