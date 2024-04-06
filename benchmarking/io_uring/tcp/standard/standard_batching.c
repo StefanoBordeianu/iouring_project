@@ -104,7 +104,6 @@ int add_recv_request(int socket, long readlength){
 
       req->type = EVENT_TYPE_RECV;
       req->message = msg;
-      sqe->flags |= IOSQE_IO_LINK;
       io_uring_prep_recvmsg(sqe,socket, msg,0);
       io_uring_sqe_set_data(sqe, req);
       return 1;
@@ -135,8 +134,7 @@ void startBatchingServer(int sock){
       io_uring_wait_cqe(&ring,cqe);
       socketfd = cqe[0]->res;
 
-      for(int i=0;i<10000;i++)
-            add_recv_request(socketfd,args.size);
+      add_recv_request(socketfd,args.size);
 
 
       printf("Entering server loop\n");
