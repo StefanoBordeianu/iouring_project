@@ -12,7 +12,7 @@ int init() {
       struct sockaddr_in add;
       long len = sizeof(add);
       int opt = 1;
-      char rec_buff[60];
+      char rec_buff[5000];
       char* buff = "Hello there\n";
 
 
