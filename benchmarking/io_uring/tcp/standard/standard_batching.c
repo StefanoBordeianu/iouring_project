@@ -126,7 +126,7 @@ int add_accept(int sock){
 void startBatchingServer(int sock){
       struct io_uring_cqe* cqe [args.batching];
       int start = 0;
-      unsigned int packets_rec;
+      unsigned int packets_rec =0;
       int rec;
       int socketfd;
 
@@ -153,9 +153,7 @@ void startBatchingServer(int sock){
                   add_recv_request(socketfd, args.size);
                   struct request* req = io_uring_cqe_get_data(cqe[i]);
 
-                  if(args.debug && (packets_rec==args.batching))
-                        printf("Emptied queue\n");
-
+                  printf("received %ld\n",packetsReceived);
                   freemsg(req->message);
                   free(req);
             }
