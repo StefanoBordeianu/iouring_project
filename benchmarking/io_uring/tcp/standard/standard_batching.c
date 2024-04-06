@@ -122,15 +122,16 @@ int add_accept(int sock){
 }
 
 void startBatchingServer(int sock){
-      struct io_uring_cqe* cqe [args.batching];
+      struct io_uring_cqe* cqe;
       int start = 0;
       unsigned int packets_rec =0;
       int rec;
       int socketfd;
 
       add_accept(sock);
-      io_uring_wait_cqe(&ring,cqe);
-      socketfd = cqe[0]->res;
+      io_uring_wait_cqe(&ring,&cqe);
+      printf("waited:\n");
+      socketfd = cqe->res;
       printf("socket: %d\n",socketfd);
 
       add_recv_request(socketfd,args.size);
@@ -139,7 +140,7 @@ void startBatchingServer(int sock){
       printf("Entering server loop\n");
       while (1) {
             io_uring_submit_and_wait(&ring,args.batching);
-            packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.batching);
+            packets_rec = io_uring_peek_batch_cqe(&ring, &cqe, 1);
 
             if (!start) {
                   start = 1;
@@ -150,10 +151,10 @@ void startBatchingServer(int sock){
 
             for (int i = 0; i < packets_rec; i++) {
                   add_recv_request(socketfd, args.size);
-                  struct request* req = io_uring_cqe_get_data(cqe[i]);
+                  struct request* req = io_uring_cqe_get_data(cqe);
 
                   printf("received %ld\n",packetsReceived);
-                  free((void*)cqe[i]->user_data);
+                  free((void*)cqe->user_data);
             }
 
             io_uring_cq_advance(&ring,packets_rec);
