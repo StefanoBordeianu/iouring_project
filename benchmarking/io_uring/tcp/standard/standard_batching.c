@@ -100,24 +100,10 @@ int openListeningSocket(int port){
 
 int add_recv_request(int socket, long readlength){
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
-      struct request* req = malloc(sizeof(struct request));
+      char* buff = malloc(args.size);
 
-      struct msghdr* msg = malloc(sizeof(struct msghdr));
-      struct iovec* iov = malloc(sizeof(struct iovec));
-
-      memset(msg, 0, sizeof(struct msghdr));
-      memset(iov,0,sizeof(struct iovec));
-      iov->iov_base = malloc(readlength);
-      iov->iov_len = readlength;
-      msg->msg_name = NULL;
-      msg->msg_namelen = 0;
-      msg->msg_iov = iov;
-      msg->msg_iovlen = 1;
-
-      req->type = EVENT_TYPE_RECV;
-      req->message = msg;
-      io_uring_prep_recvmsg(sqe,socket, msg,0);
-      io_uring_sqe_set_data(sqe, req);
+      io_uring_prep_recv(sqe,socket, buff,args.size,0);
+      io_uring_sqe_set_data(sqe,buff);
       return 1;
 }
 
@@ -145,6 +131,7 @@ void startBatchingServer(int sock){
       add_accept(sock);
       io_uring_wait_cqe(&ring,cqe);
       socketfd = cqe[0]->res;
+      printf("socket: %d\n",socketfd);
 
       add_recv_request(socketfd,args.size);
 
@@ -166,8 +153,7 @@ void startBatchingServer(int sock){
                   struct request* req = io_uring_cqe_get_data(cqe[i]);
 
                   printf("received %ld\n",packetsReceived);
-                  freemsg(req->message);
-                  free(req);
+                  free((void*)cqe[i]->user_data);
             }
 
             io_uring_cq_advance(&ring,packets_rec);
