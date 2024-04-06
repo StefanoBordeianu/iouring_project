@@ -54,6 +54,7 @@ int init() {
                   printf("SERVER: Error receiving\n");
                   return -1;
             }
+            printf("received %d\n",i);
       }
 
       printf("SERVER: IM NOW CLOSING\n");
