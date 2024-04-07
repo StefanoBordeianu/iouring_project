@@ -12,7 +12,7 @@
 #define EVENT_TYPE_SEND 2
 
 struct io_uring ring;
-long packetsReceived;
+long packetsReceived,bytes_rec,total_bytes,total_packets;
 
 struct request{
     int type;
@@ -127,6 +127,10 @@ void startBatchingServer(int sock){
       unsigned int packets_rec =0;
       int rec;
       int socketfd;
+      total_packets = 0;
+      total_bytes = 0;
+      bytes_rec= 0;
+      packetsReceived = 0;
 
       add_accept(sock);
       io_uring_wait_cqe(&ring,&cqe);
@@ -152,6 +156,14 @@ void startBatchingServer(int sock){
             for (int i = 0; i < packets_rec; i++) {
                   add_recv_request(socketfd, args.size);
                   struct request* req = io_uring_cqe_get_data(cqe);
+                  if(cqe->res <0)
+                        printf("error %d\n",cqe->res);
+
+                  bytes_rec += cqe->res;
+                  if(cqe->res > 0) {
+                        total_bytes += (cqe->res + 20 + 14 + 20 + 20);
+                        total_packets++;
+                  }
 
                   //printf("received %ld\n",packetsReceived);
                   free((void*)cqe->user_data);
@@ -162,9 +174,12 @@ void startBatchingServer(int sock){
 }
 
 void sig_handler(int signum){
-      printf("\nReceived: %ld packets of size %d\n",packetsReceived, args.size);
+      printf("\nReceived: %ld packets of size %d\n",total_packets, args.size);
+      printf("\nReceived: %ld events\n",packetsReceived);
+      printf("\nReceived: %ld TCP bytes\n",bytes_rec);
+      printf("\nReceived: %ld TOTAL bytes\n",total_bytes);
+
       long speed = packetsReceived/args.duration;
-      long bytes_rec = packetsReceived*args.size;
       printf("Speed: %ld packets/second\n", speed);
       printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
       printf("Now closing\n\n");
