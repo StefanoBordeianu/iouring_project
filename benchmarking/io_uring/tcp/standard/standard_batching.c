@@ -127,12 +127,23 @@ void startBatchingServer(int sock){
       unsigned int packets_rec =0;
       int rec;
       int socketfd;
+      struct io_uring_sqe* sqe;
+      struct sockaddr_in add;
+      long len = sizeof(add);
+
+
       total_packets = 0;
       total_bytes = 0;
       bytes_rec= 0;
       packetsReceived = 0;
 
-      add_accept(sock);
+      add.sin_port = htons(args.port);
+      add.sin_family = AF_INET;
+      add.sin_addr.s_addr = INADDR_ANY;
+
+      sqe = io_uring_get_sqe(&ring);
+      io_uring_prep_accept(sqe,sock,(struct sockaddr*)&add, (socklen_t *) &len,0);
+      io_uring_submit(&ring);
       io_uring_wait_cqe(&ring,&cqe);
       printf("waited:\n");
       socketfd = cqe->res;
@@ -185,6 +196,16 @@ void sig_handler(int signum){
       printf("Now closing\n\n");
       io_uring_queue_exit(&ring);
       exit(0);
+      ENOTSOCK;
+      EAGAIN;
+      EBADF;
+      ECONNREFUSED;
+      EFAULT;
+      EINTR;
+      EINVAL;
+      ENOMEM;
+      ENOTCONN;
+
 }
 
 int main(int argc, char *argv[]){
