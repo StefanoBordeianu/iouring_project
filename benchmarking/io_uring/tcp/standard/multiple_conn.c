@@ -135,6 +135,7 @@ void startBatchingServer(int sock){
       sqe = io_uring_get_sqe(&ring);
       io_uring_prep_multishot_accept(sqe,sock,NULL,NULL,0);
       io_uring_sqe_set_data(sqe,EVENT_TYPE_ACCEPT);
+      io_uring_submit(&ring);
 
       while(1){
             int reaped,head,i;
