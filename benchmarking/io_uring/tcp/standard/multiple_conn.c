@@ -143,8 +143,11 @@ void startBatchingServer(int sock){
             struct __kernel_timespec *ts = &timespec;
 
             reaped = io_uring_submit_and_wait_timeout(&ring,&cqe,args.batching,ts,NULL);
+            if(!reaped)
+                  continue;
             total_events += reaped;
 
+            printf("received %d\n",reaped);
             i = 0;
             io_uring_for_each_cqe(&ring,head,cqe){
                   struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
