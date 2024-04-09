@@ -32,4 +32,6 @@ add_executable(iouring_project
         benchmarking/io_uring/udp/standardWork/standard_batching.c
         benchmarking/io_uring/udp/standardWork/socket.c
         benchmarking/io_uring/tcp/standard/standard_batching.c
+        benchmarking/io_uring/tcp/standard/multiple_conn.c
+        benchmarking/io_uring/udp/standard/mutiple_sockets.c
 )

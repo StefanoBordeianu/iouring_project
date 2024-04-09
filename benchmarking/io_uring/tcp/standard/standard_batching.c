@@ -64,39 +64,77 @@ void parseArgs(int argc, char* argv[]){
       }
 }
 
-
-int openListeningSocket(int port){
-      int socketfd;
-      int opt = 1;
-      struct sockaddr_in add;
-
-      socketfd = socket(AF_INET, SOCK_STREAM, 0);
-      if(socketfd < 0){
-            printf("SERVER: Error while creating the socket\n");
-            return -1;
-      }
-//      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-//                    &opt,sizeof (opt))){
-//            printf("SERVER: Socket options error\n");
+//int openListeningSocket(int port){
+//      int socketfd;
+//      int opt = 1;
+//      struct sockaddr_in add;
+//
+//      socketfd = socket(AF_INET, SOCK_STREAM, 0);
+//      if(socketfd < 0){
+//            printf("SERVER: Error while creating the socket\n");
 //            return -1;
 //      }
+////      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+////                    &opt,sizeof (opt))){
+////            printf("SERVER: Socket options error\n");
+////            return -1;
+////      }
+//
+//      add.sin_port = htons(args.port);
+//      add.sin_family = AF_INET;
+//      add.sin_addr.s_addr = INADDR_ANY;
+//
+//      if (bind(socketfd, (struct sockaddr*)&add,
+//               sizeof(add))< 0){
+//            printf("SERVER: Error binding\n");
+//            return -1;
+//      }
+//
+//      if(listen(socketfd,100)){
+//            printf("SERVER: Error listening\n");
+//            return -1;
+//      }
+//      return socketfd;
+//}
 
-      add.sin_port = htons(args.port);
-      add.sin_family = AF_INET;
-      add.sin_addr.s_addr = INADDR_ANY;
+int openListeningSocket(int port)
+{
+      struct sockaddr_in srv_addr = { };
+      struct sockaddr_in6 srv_addr6 = { };
+      int fd, enable, ret, domain;
 
-      if (bind(socketfd, (struct sockaddr*)&add,
-               sizeof(add))< 0){
-            printf("SERVER: Error binding\n");
+      domain = AF_INET;
+
+      fd = socket(domain, SOCK_STREAM, 0);
+      if (fd == -1) {
+            perror("socket()");
             return -1;
       }
 
-      if(listen(socketfd,100)){
-            printf("SERVER: Error listening\n");
+      enable = 1;
+      ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
+      if (ret < 0) {
+            perror("setsockopt(SO_REUSEADDR)");
             return -1;
       }
-      return socketfd;
+
+      srv_addr.sin_family = AF_INET;
+      srv_addr.sin_port = htons(port);
+      srv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+      ret = bind(fd, (const struct sockaddr *)&srv_addr, sizeof(srv_addr));
+      if (ret < 0) {
+            perror("bind()");
+            return -1;
+      }
+
+      if (listen(fd, 1024) < 0) {
+            perror("listen()");
+            return -1;
+      }
+
+      return fd;
 }
+
 
 int add_recv_request(int socket, long readlength){
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
@@ -105,20 +143,6 @@ int add_recv_request(int socket, long readlength){
       io_uring_prep_recv(sqe,socket, buff,args.size,0);
       io_uring_sqe_set_data(sqe,buff);
       return 1;
-}
-
-int add_accept(int sock){
-      struct io_uring_sqe* sqe;
-      struct sockaddr_in add;
-      long len = sizeof(add);
-
-      add.sin_port = htons(args.port);
-      add.sin_family = AF_INET;
-      add.sin_addr.s_addr = INADDR_ANY;
-
-      sqe = io_uring_get_sqe(&ring);
-      io_uring_prep_accept(sqe,sock,(struct sockaddr*)&add, (socklen_t *) &len,0);
-      io_uring_submit(&ring);
 }
 
 void startBatchingServer(int sock){
@@ -196,16 +220,6 @@ void sig_handler(int signum){
       printf("Now closing\n\n");
       io_uring_queue_exit(&ring);
       exit(0);
-      ENOTSOCK;
-      EAGAIN;
-      EBADF;
-      ECONNREFUSED;
-      EFAULT;
-      EINTR;
-      EINVAL;
-      ENOMEM;
-      ENOTCONN;
-
 }
 
 int main(int argc, char *argv[]){
