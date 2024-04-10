@@ -163,13 +163,13 @@ void handle_recv(struct io_uring_cqe* cqe){
       }
 
       if(cqe->res < 0)
-            printf("Error receiving %d",cqe->res);
+            printf("Error receiving %d\n",cqe->res);
 
       packets_received++;
       bytes_received += cqe->res;
       total_bytes += cqe->res + 74;
 
-      socket = req->type;
+      socket = req->socket;
       add_recv_request(socket);
 
       free(req->buff);
