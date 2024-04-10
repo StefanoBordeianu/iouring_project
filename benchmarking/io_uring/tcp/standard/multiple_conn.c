@@ -131,9 +131,14 @@ int openListeningSocket(int port){
 int add_recv_request(int socket){
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
       char* buff = malloc(args.size);
+      struct request* req = malloc(sizeof(struct request));
+
+      req->buff = buff;
+      req->type = EVENT_TYPE_RECV;
+      req->socket = socket;
 
       io_uring_prep_recv(sqe,socket, buff,args.size,0);
-      io_uring_sqe_set_data(sqe,buff);
+      io_uring_sqe_set_data(sqe,req);
       return 1;
 }
 
@@ -141,6 +146,9 @@ void handle_accept(struct io_uring_cqe* cqe){
       int socket;
 
       socket = cqe->res;
+      printf("Starting receiving on socket %d\n",socket);
+      if(!(cqe->flags & IORING_CQE_F_MORE))
+            printf("no more accept\n");
       add_recv_request(socket);
 }
 
