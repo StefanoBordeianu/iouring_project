@@ -163,19 +163,24 @@ void handle_recv(struct io_uring_cqe* cqe){
       socket = req->type;
       add_recv_request(socket);
 
+      free(req->buff);
       free(req);
 }
 
 void startBatchingServer(int sock){
       struct io_uring_sqe* sqe;
       struct __kernel_timespec timespec;
+      struct request* req = malloc(sizeof(struct request));
 
       timespec.tv_sec = 0;
       timespec.tv_nsec = 100000000;
 
+      req->type = EVENT_TYPE_ACCEPT;
+      req->socket = sock;
+
       sqe = io_uring_get_sqe(&ring);
       io_uring_prep_multishot_accept(sqe,sock,NULL,NULL,0);
-      io_uring_sqe_set_data(sqe,EVENT_TYPE_ACCEPT);
+      io_uring_sqe_set_data(sqe,req);
       io_uring_submit(&ring);
 
       while(1){
