@@ -162,6 +162,9 @@ void handle_recv(struct io_uring_cqe* cqe){
             alarm(args.duration);
       }
 
+      if(cqe->res < 0)
+            printf("Error receiving %d",cqe->res);
+
       packets_received++;
       bytes_received += cqe->res;
       total_bytes += cqe->res + 74;
@@ -197,7 +200,6 @@ void startBatchingServer(int sock){
             reaped = io_uring_submit_and_wait_timeout(&ring,&cqe,args.batching,ts,NULL);
             if(reaped < 0)
                   continue;
-            total_events += reaped;
 
             //printf("received %d\n",reaped);
             i = 0;
@@ -215,6 +217,7 @@ void startBatchingServer(int sock){
             }
             io_uring_submit(&ring);
 
+            total_events += i;
             if(i)
                   io_uring_cq_advance(&ring, i);
       }
