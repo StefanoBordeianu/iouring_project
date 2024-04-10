@@ -151,6 +151,8 @@ void startBatchingServer(){
                   req = io_uring_cqe_get_data(cqe[i]);
                   add_recv_request(req->sock, args.size);
 
+                  if(cqe[i]->res < 0)
+                        printf("Error %d\n",cqe[i]->res);
                   if(args.debug && (harvested==args.batching))
                         printf("Emptied queue\n");
 
