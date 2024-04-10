@@ -234,7 +234,6 @@ int main(int argc, char *argv[]){
       printf("starting batching standard server\n");
       startBatchingServer(socketfd);
 
-
 }
 //
 // Created by ebpf on 01/10/23.
