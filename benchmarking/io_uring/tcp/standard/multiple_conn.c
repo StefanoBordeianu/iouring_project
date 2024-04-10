@@ -184,7 +184,7 @@ void startBatchingServer(int sock){
             struct __kernel_timespec *ts = &timespec;
 
             reaped = io_uring_submit_and_wait_timeout(&ring,&cqe,args.batching,ts,NULL);
-            if(reaped <= 0)
+            if(reaped < 0)
                   continue;
             total_events += reaped;
 
