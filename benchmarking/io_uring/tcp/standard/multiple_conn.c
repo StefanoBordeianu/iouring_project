@@ -13,6 +13,7 @@
 
 struct io_uring ring;
 long packets_received,bytes_received,total_bytes,total_events;
+char start;
 
 struct request{
     int socket;
@@ -156,6 +157,11 @@ void handle_recv(struct io_uring_cqe* cqe){
       int socket;
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
 
+      if(!start){
+            start = 1;
+            alarm(args.duration);
+      }
+
       packets_received++;
       bytes_received += cqe->res;
       total_bytes += cqe->res + 74;
@@ -170,17 +176,17 @@ void handle_recv(struct io_uring_cqe* cqe){
 void startBatchingServer(int sock){
       struct io_uring_sqe* sqe;
       struct __kernel_timespec timespec;
-      struct request* req = malloc(sizeof(struct request));
+      struct request* acc_req = malloc(sizeof(struct request));
 
       timespec.tv_sec = 0;
       timespec.tv_nsec = 100000000;
 
-      req->type = EVENT_TYPE_ACCEPT;
-      req->socket = sock;
+      acc_req->type = EVENT_TYPE_ACCEPT;
+      acc_req->socket = sock;
 
       sqe = io_uring_get_sqe(&ring);
       io_uring_prep_multishot_accept(sqe,sock,NULL,NULL,0);
-      io_uring_sqe_set_data(sqe,req);
+      io_uring_sqe_set_data(sqe,acc_req);
       io_uring_submit(&ring);
 
       while(1){
@@ -193,7 +199,7 @@ void startBatchingServer(int sock){
                   continue;
             total_events += reaped;
 
-            printf("received %d\n",reaped);
+            //printf("received %d\n",reaped);
             i = 0;
             io_uring_for_each_cqe(&ring,head,cqe){
                   struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
