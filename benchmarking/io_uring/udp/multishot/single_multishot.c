@@ -8,7 +8,7 @@
 #include "liburing.h"
 
 #define BUF_GRPID 37
-#define BUFF_SIZE 1500
+#define BUFF_SIZE args.size
 #define NUMBER_OF_BUFFERS args.numb_of_buffers
 
 
@@ -67,11 +67,14 @@ struct io_uring_buf_ring* initialize_buffers(){
       struct io_uring_buf_reg reg = {};
       struct io_uring_buf_ring *br;
       int i;
+
       printf("SIZE: %ld\nSCpagesize:  %ld\n",
              (NUMBER_OF_BUFFERS * sizeof(struct io_uring_buf)),sysconf(_SC_PAGESIZE));
+
+
       if (posix_memalign((void **) &br, sysconf(_SC_PAGESIZE),
                          NUMBER_OF_BUFFERS * sizeof(struct io_uring_buf))){
-            printf("PRIMO %s\n",strerror(errno));
+            printf("1st Posix\n");
             return NULL;
       }
 
@@ -79,7 +82,6 @@ struct io_uring_buf_ring* initialize_buffers(){
       reg.ring_entries = NUMBER_OF_BUFFERS;
       reg.bgid = BUF_GRPID;
       if ((i = io_uring_register_buf_ring(&ring, &reg, 0))){
-            printf("register error:     %s\n",strerror(i*-1));
             return NULL;
       }
 
@@ -162,7 +164,7 @@ void startServer(int socketfd){
                   bytes_rec += cqe[i]->res;
                   buffer_id = cqe[i]->flags >> IORING_CQE_BUFFER_SHIFT;
                   io_uring_buf_ring_add(br, buffers[buffer_id], BUFF_SIZE, buffer_id,
-                                        io_uring_buf_ring_mask(args.numb_of_buffers), i);
+                                        , i);
             }
             io_uring_buf_ring_cq_advance(&ring,br,(int)reaped);
       }

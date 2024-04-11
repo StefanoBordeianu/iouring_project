@@ -26,6 +26,7 @@ struct args{
     int size;
     int debug;
     int test;
+    int coop;
 };
 
 struct args args;
@@ -42,6 +43,7 @@ void parseArgs(int argc, char* argv[]){
       args.batching = 1;
       args.duration = 10;
       args.test = 0;
+      args.coop = 0;
 
       while((opt =getopt(argc,argv,"hs:p:d:b:t")) != -1) {
             switch (opt) {
@@ -59,6 +61,9 @@ void parseArgs(int argc, char* argv[]){
                         break;
                   case 't':
                         args.test = 1;
+                        break;
+                  case 'c':
+                        args.coop = 1;
                         break;
             }
       }
@@ -121,7 +126,7 @@ void startBatchingServer(int socketfd){
       unsigned int packets_rec;
       int rec;
 
-      for(int i=0;i<10000;i++)
+      for(int i=0;i<args.batching;i++)
             add_recv_request(socketfd,args.size);
 
 
@@ -171,11 +176,16 @@ void sig_handler(int signum){
 
 int main(int argc, char *argv[]){
       int socketfd;
+      struct io_uring_params params;
 
       parseArgs(argc, argv);
       signal(SIGALRM,sig_handler);
 
-      io_uring_queue_init(32768,&ring,0);
+      if(args.coop)
+            params.flags |= IORING_SETUP_COOP_TASKRUN;
+
+
+      io_uring_queue_init_params(32768,&ring,&params);
       socketfd = openListeningSocket(args.port);
 
       printf("starting batching standard server\n");
