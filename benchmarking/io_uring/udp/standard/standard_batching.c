@@ -27,6 +27,9 @@ struct args{
     int debug;
     int test;
     int coop;
+    int async;
+    int single;
+    int defer;
 };
 
 struct args args;
@@ -44,8 +47,11 @@ void parseArgs(int argc, char* argv[]){
       args.duration = 10;
       args.test = 0;
       args.coop = 0;
+      args.async = 0;
+      args.single = 0;
+      args.defer = 0;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:t")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:tcagf")) != -1) {
             switch (opt) {
                   case 'p':
                         args.port = atoi(optarg);
@@ -64,6 +70,15 @@ void parseArgs(int argc, char* argv[]){
                         break;
                   case 'c':
                         args.coop = 1;
+                        break;
+                  case 'a':
+                        args.async = 1;
+                        break;
+                  case 'g':
+                        args.single = 1;
+                        break;
+                  case 'f':
+                        args.defer = 1;
                         break;
             }
       }
@@ -114,7 +129,7 @@ int add_recv_request(int socket, long readlength){
 
       req->type = EVENT_TYPE_RECV;
       req->message = msg;
-      sqe->flags |= IOSQE_IO_LINK;
+      sqe->flags |= IOSQE_ASYNC;
       io_uring_prep_recvmsg(sqe,socket, msg,0);
       io_uring_sqe_set_data(sqe, req);
       return 1;
@@ -183,6 +198,10 @@ int main(int argc, char *argv[]){
 
       if(args.coop)
             params.flags |= IORING_SETUP_COOP_TASKRUN;
+      if(args.single)
+            params.flags |= IORING_SETUP_SINGLE_ISSUER;
+      if(args.defer)
+            params.flags |= IORING_SETUP_DEFER_TASKRUN;
 
 
       io_uring_queue_init_params(32768,&ring,&params);
