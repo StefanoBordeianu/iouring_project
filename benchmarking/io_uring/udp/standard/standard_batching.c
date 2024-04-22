@@ -207,7 +207,7 @@ int main(int argc, char *argv[]){
             params.flags |= IORING_SETUP_DEFER_TASKRUN;
 
 
-      io_uring_queue_init_params(32768,&ring,&params);
+      io_uring_queue_init_params(1024,&ring,&params);
       socketfd = openListeningSocket(args.port);
 
       printf("starting batching standard server\n");

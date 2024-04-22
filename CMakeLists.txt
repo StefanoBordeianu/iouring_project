@@ -22,12 +22,7 @@ add_executable(iouring_project
         benchmarking/io_uring/udp/standard/standard_registered_file.c
         benchmarking/io_uring/udp/multishot/ex.c
         benchmarking/io_uring/udp/multishot/multiple_multishot.c
-        benchmarking/io_uring/udp/standard/standard_non_batching.c
-        benchmarking/io_uring/udp/standard/standard_single_issue.c
-        benchmarking/io_uring/udp/standard/standard_coopTaskrun.c
-        benchmarking/io_uring/udp/standard/standard_single_and_coop.c
         benchmarking/io_uring/udp/standard/standard_registered_file.c
-        benchmarking/io_uring/udp/standard/standard_non_batching.c
         benchmarking/io_uring/udp/multishot/multi_multishot.c
         benchmarking/io_uring/udp/standardWork/standard_batching.c
         benchmarking/io_uring/udp/standardWork/socket.c
