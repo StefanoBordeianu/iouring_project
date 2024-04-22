@@ -31,4 +31,5 @@ add_executable(iouring_project
         benchmarking/io_uring/udp/standard/mutiple_sockets.c
         benchmarking/io_uring/tcp/multishot/mshot_single_conn.c
         benchmarking/io_uring/udp/liburing_ex.c
+        benchmarking/socket/forw.c
 )
