@@ -14,6 +14,7 @@ int duration = 5;
 int port = 8080;
 long bytes_rec;
 int size;
+long errors = 0;
 
 int init() {
 
@@ -48,6 +49,8 @@ void serverLoop(){
             n = recvfrom(socketfd, (char *)buffer, size,
                          MSG_WAITALL, ( struct sockaddr *) &addr,
                          &len);
+            if(n<0)
+                  errors++;
             if(!start){
                   start = 1;
                   alarm(duration);
@@ -62,6 +65,7 @@ void sig_handler(int signum){
       printf("\nReceived: %ld packets\n",packetsReceived);
       long speed = packetsReceived/duration;
       printf("Speed: %ld packets/second\n", speed);
+      printf("Errors %ld/s\n",errors/duration);
       FILE* file;
       file = fopen("socketServerResults.txt","a");
       fprintf(file, "%ld\n", speed);
