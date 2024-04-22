@@ -113,6 +113,9 @@ int openListeningSocket(int port){
 
 int add_recv_request(int socket, long readlength){
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
+      if(sqe == NULL)
+            printf("ERROR while getting the sqe\n");
+
       struct request* req = malloc(sizeof(struct request));
 
       struct msghdr* msg = malloc(sizeof(struct msghdr));
