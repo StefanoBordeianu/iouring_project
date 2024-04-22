@@ -129,9 +129,9 @@ int add_recv_request(int socket, long readlength){
 
       req->type = EVENT_TYPE_RECV;
       req->message = msg;
-      sqe->flags |= IOSQE_ASYNC;
       io_uring_prep_recvmsg(sqe,socket, msg,0);
       io_uring_sqe_set_data(sqe, req);
+      io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
       return 1;
 }
 
