@@ -112,7 +112,9 @@ int openListeningSocket(int port){
 }
 
 int add_recv_request(int socket, long readlength){
+      printf("-1\n");
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
+      printf("0\n");
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
