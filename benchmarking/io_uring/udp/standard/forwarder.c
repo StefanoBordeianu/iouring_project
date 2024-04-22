@@ -21,10 +21,15 @@ struct request{
 
 struct args{
     int port;
+    int batching;
     int duration;
     int size;
     int debug;
     int test;
+    int coop;
+    int async;
+    int single;
+    int defer;
 };
 
 struct args args;
@@ -38,13 +43,21 @@ void freemsg(struct msghdr * msg){
 void parseArgs(int argc, char* argv[]){
       int opt;
       args.port = 2020;
+      args.batching = 1;
       args.duration = 10;
       args.test = 0;
+      args.coop = 0;
+      args.async = 0;
+      args.single = 0;
+      args.defer = 0;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:t")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:tcagf")) != -1) {
             switch (opt) {
                   case 'p':
                         args.port = atoi(optarg);
+                        break;
+                  case 'b':
+                        args.batching =  atoi(optarg);
                         break;
                   case 'd':
                         args.duration = atoi(optarg);
@@ -54,6 +67,18 @@ void parseArgs(int argc, char* argv[]){
                         break;
                   case 't':
                         args.test = 1;
+                        break;
+                  case 'c':
+                        args.coop = 1;
+                        break;
+                  case 'a':
+                        args.async = 1;
+                        break;
+                  case 'g':
+                        args.single = 1;
+                        break;
+                  case 'f':
+                        args.defer = 1;
                         break;
             }
       }
@@ -88,6 +113,9 @@ int openListeningSocket(int port){
 
 int add_recv_request(int socket, long readlength){
       struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
+      if(sqe == NULL)
+            printf("ERROR while getting the sqe\n");
+
       struct request* req = malloc(sizeof(struct request));
 
       struct msghdr* msg = malloc(sizeof(struct msghdr));
@@ -104,42 +132,47 @@ int add_recv_request(int socket, long readlength){
 
       req->type = EVENT_TYPE_RECV;
       req->message = msg;
-
-      io_uring_prep_recvmsg(sqe,0, msg,0);
-      //io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
-
-      sqe->flags |= IOSQE_FIXED_FILE;
+      io_uring_prep_recvmsg(sqe,socket, msg,0);
       io_uring_sqe_set_data(sqe, req);
+      if(args.async)
+            io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
       return 1;
 }
 
-void startServer(int socketfd){
-      struct io_uring_cqe* cqe;
+void startBatchingServer(int socketfd){
+      struct io_uring_cqe* cqe [args.batching];
       int start = 0;
-      add_recv_request(socketfd,args.size);
-      io_uring_submit(&ring);
+      unsigned int packets_rec;
+      int rec;
+
+      for(int i=0;i<args.batching;i++)
+            add_recv_request(socketfd,args.size);
+
 
       printf("Entering server loop\n");
-      while(1) {
-            if (io_uring_wait_cqe(&ring, &cqe)) {
-                  printf("ERROR WAITING\n");
-                  exit(-1);
-            }
-            struct request *req = io_uring_cqe_get_data(cqe);
+      while (1) {
+            io_uring_submit_and_wait(&ring,args.batching);
+            packets_rec = io_uring_peek_batch_cqe(&ring, cqe, args.batching);
 
             if (!start) {
                   start = 1;
                   alarm(args.duration);
-                  printf("alarm set\n");
             }
-            packetsReceived++;
-            add_recv_request(socketfd, args.size);
-            io_uring_submit(&ring);
-            freemsg(req->message);
-            free(req);
 
+            packetsReceived = packetsReceived + packets_rec;
 
-            io_uring_cqe_seen(&ring, cqe);
+            for (int i = 0; i < packets_rec; i++) {
+                  add_recv_request(socketfd, args.size);
+                  struct request* req = io_uring_cqe_get_data(cqe[i]);
+
+                  if(args.debug && (packets_rec==args.batching))
+                        printf("Emptied queue\n");
+
+                  freemsg(req->message);
+                  free(req);
+            }
+
+            io_uring_cq_advance(&ring,packets_rec);
       }
 }
 
@@ -151,7 +184,7 @@ void sig_handler(int signum){
       printf("Rate: %ld Mb/s\n", (bytes_rec*8)/(args.duration * 1000000));
       printf("Now closing\n\n");
       if(args.test) {
-            FILE *file = fopen("registered_res.txt", "a");
+            FILE *file = fopen("batching_res.txt", "a");
             fprintf(file, "%ld\n", speed);
             fprintf(file, "%f\n", ((double) (bytes_rec * 8)) / (args.duration * 1000000));
             fclose(file);
@@ -162,16 +195,25 @@ void sig_handler(int signum){
 
 int main(int argc, char *argv[]){
       int socketfd;
+      struct io_uring_params params = {};
 
       parseArgs(argc, argv);
       signal(SIGALRM,sig_handler);
 
-      io_uring_queue_init(32768,&ring,0);
-      socketfd = openListeningSocket(args.port);
-      io_uring_register_files(&ring,&socketfd,1);
+      if(args.coop)
+            params.flags |= IORING_SETUP_COOP_TASKRUN;
+      if(args.single)
+            params.flags |= IORING_SETUP_SINGLE_ISSUER;
+      if(args.defer)
+            params.flags |= IORING_SETUP_DEFER_TASKRUN;
 
-      printf("starting registered standard server\n");
-      startServer(socketfd);
+
+      io_uring_queue_init_params(1024,&ring,&params);
+      socketfd = openListeningSocket(args.port);
+
+      printf("starting batching standard server\n");
+      startBatchingServer(socketfd);
+
 
 }
 //

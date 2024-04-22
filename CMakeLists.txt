@@ -19,10 +19,8 @@ add_executable(iouring_project
         benchmarking/io_uring/udp/kernelPooling/kernel_polling.c
         benchmarking/io_uring/udp/submitAndWait/submit_and_wait.c
         benchmarking/io_uring/udp/multishot/single_multishot.c
-        benchmarking/io_uring/udp/standard/standard_registered_file.c
         benchmarking/io_uring/udp/multishot/ex.c
         benchmarking/io_uring/udp/multishot/multiple_multishot.c
-        benchmarking/io_uring/udp/standard/standard_registered_file.c
         benchmarking/io_uring/udp/multishot/multi_multishot.c
         benchmarking/io_uring/udp/standardWork/standard_batching.c
         benchmarking/io_uring/udp/standardWork/socket.c
@@ -32,4 +30,7 @@ add_executable(iouring_project
         benchmarking/io_uring/tcp/multishot/mshot_single_conn.c
         benchmarking/io_uring/udp/liburing_ex.c
         benchmarking/socket/forw.c
+        benchmarking/io_uring/udp/standard/forwarder.c
+        benchmarking/io_uring/udp/standard/forwarder.c
+        benchmarking/io_uring/udp/standard/forwarder.c
 )
