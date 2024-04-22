@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
       ctx.buf_shift = BUF_SHIFT;
       ctx.duration = 10;
 
-      while ((opt = getopt(argc, argv, "6vp:b:")) != -1) {
+      while ((opt = getopt(argc, argv, "6vp:b:d:")) != -1) {
             switch (opt) {
                   case '6':
                         ctx.af = AF_INET6;
@@ -380,6 +380,7 @@ int main(int argc, char *argv[])
             }
       }
 
+      signal(SIGALRM,sig_handler);
       sockfd = setup_sock(ctx.af, port);
       if (sockfd < 0)
             return 1;
