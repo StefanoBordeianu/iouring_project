@@ -4,16 +4,30 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <signal.h>
 
 #define PORT 2020
 #define IP_ADDR "192.168.1.2"
-int pkt = 0;
+long pkt = 0;
+int duration = 10;
+int start = 0;
 
-int main(){
+void sig_handler(int signum){
+      printf("\nReceived: %ld packets\n",pkt/duration);
+      printf("Now closing\n\n");
+      exit(0);
+}
+
+int main(int argc, char *argv[]){
       int sockfd;
       struct sockaddr_in listen_add, send_adr;
       char buffer[64];
 
+      if(argc>1){
+            duration = atoi(argv[1]);
+      }
+
+      signal(SIGALRM,sig_handler);
       if((sockfd = socket(AF_INET, SOCK_DGRAM, 0))<0){
             perror("socket");
             return 0;
@@ -39,6 +53,12 @@ int main(){
       memset(&send_msg,0, sizeof(send_msg));
 
       while(1){
+
+            if(!start){
+                  start = 1;
+                  alarm(duration);
+            }
+
             n = recvfrom(sockfd,buffer,sizeof(buffer),0,(struct sockaddr*)&send_adr,&len);
             send_iovec[0].iov_base = buffer;
             send_iovec[0].iov_len = n;
@@ -52,6 +72,4 @@ int main(){
             sendmsg(sockfd , &send_msg , 0 );
             pkt++;
       }
-      close(sockfd);
-      return 0;
 }
