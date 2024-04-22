@@ -334,6 +334,7 @@ static int process_cqe(struct ctx *ctx, struct io_uring_cqe *cqe, int fdidx)
 }
 
 void sig_handler(int signum){
+      printf("packet rate %ld pkts/s\n",pkt_count/(long)ctxs->duration);
       cleanup_context(ctxs);
       close(sockfd);
 }
