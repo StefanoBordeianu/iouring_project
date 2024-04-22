@@ -201,7 +201,7 @@ void sig_handler(int signum){
 
 int main(int argc, char *argv[]){
       int socketfd;
-      struct io_uring_params params;
+      struct io_uring_params params = {};
 
       parseArgs(argc, argv);
       signal(SIGALRM,sig_handler);
