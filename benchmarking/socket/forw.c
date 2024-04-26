@@ -8,7 +8,7 @@
 #include <errno.h>
 
 #define PORT 2020
-#define IP_ADDR "192.168.1.2"
+#define IP_ADDR "192.168.1.1"
 long pkt = 0;
 int duration = 10;
 int start = 0;
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]){
       memset(&send_adr,0,sizeof(send_adr));
 
       listen_add.sin_family = AF_INET;
-      listen_add.sin_addr.s_addr =  inet_addr(IP_ADDR);
+      listen_add.sin_addr.s_addr =  INADDR_ANY;
       listen_add.sin_port = htons(PORT);
 
       if(bind(sockfd,(struct sockaddr*)&listen_add,sizeof(struct sockaddr)) < 0){
@@ -57,22 +57,19 @@ int main(int argc, char *argv[]){
       while(1){
 
             n = recvfrom(sockfd,buffer,sizeof(buffer),0,(struct sockaddr*)&send_adr,&len);
+            if(n<0){
+                  fprintf (stderr, "errno = %d ", errno);
+                  perror("recv");
+                  return 0;
+            }
+
 
             if(!start){
                   start = 1;
                   alarm(duration);
             }
 
-            send_iovec[0].iov_base = buffer;
-            send_iovec[0].iov_len = n;
-            send_msg.msg_name = &send_adr;
-            send_msg.msg_namelen = sizeof(send_adr);
-            send_msg.msg_iov = send_iovec;
-            send_msg.msg_iovlen = 1;
-            send_msg.msg_flags = 0 ;
-            send_msg.msg_controllen = 0 ;
-            send_msg.msg_control = NULL;
-            sendmsg(sockfd , &send_msg , 0 );
+            sendto(sockfd,buffer,64,0,(struct sockaddr*)&send_adr,len);
             pkt++;
       }
 }
