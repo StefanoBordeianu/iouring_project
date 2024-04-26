@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 
 #define PORT 2020
 #define IP_ADDR "192.168.1.2"
@@ -40,7 +41,8 @@ int main(int argc, char *argv[]){
       listen_add.sin_addr.s_addr =  inet_addr(IP_ADDR);
       listen_add.sin_port = htons(PORT);
 
-      if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
+      if(bind(sockfd,(struct sockaddr*)&listen_add,sizeof(struct sockaddr)) < 0){
+            fprintf (stderr, "errno = %d ", errno);
             perror("bind");
             return 0;
       }
