@@ -7,7 +7,7 @@
 #include <signal.h>
 
 #define PORT 2020
-#define IP_ADDR "192.168.1.1"
+#define IP_ADDR "192.168.1.2"
 long pkt = 0;
 int duration = 10;
 int start = 0;
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]){
       memset(&send_adr,0,sizeof(send_adr));
 
       listen_add.sin_family = AF_INET;
-      listen_add.sin_addr.s_addr =  INADDR_ANY ;
+      listen_add.sin_addr.s_addr = inet_addr(IP_ADDR);
       listen_add.sin_port = htons(port);
 
       if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){

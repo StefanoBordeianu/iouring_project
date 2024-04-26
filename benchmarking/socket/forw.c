@@ -37,7 +37,7 @@ int main(int argc, char *argv[]){
       memset(&send_adr,0,sizeof(send_adr));
 
       listen_add.sin_family = AF_INET;
-      listen_add.sin_addr.s_addr =  INADDR_ANY ;
+      listen_add.sin_addr.s_addr =  inet_addr(IP_ADDR);
       listen_add.sin_port = htons(PORT);
 
       if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]){
             send_msg.msg_flags = 0 ;
             send_msg.msg_controllen = 0 ;
             send_msg.msg_control = NULL;
-            //sendmsg(sockfd , &send_msg , 0 );
+            sendmsg(sockfd , &send_msg , 0 );
             pkt++;
       }
 }
