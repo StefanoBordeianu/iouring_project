@@ -54,12 +54,13 @@ int main(int argc, char *argv[]){
 
       while(1){
 
+            n = recvfrom(sockfd,buffer,sizeof(buffer),0,(struct sockaddr*)&send_adr,&len);
+
             if(!start){
                   start = 1;
                   alarm(duration);
             }
 
-            n = recvfrom(sockfd,buffer,sizeof(buffer),0,(struct sockaddr*)&send_adr,&len);
             send_iovec[0].iov_base = buffer;
             send_iovec[0].iov_len = n;
             send_msg.msg_name = &send_adr;
