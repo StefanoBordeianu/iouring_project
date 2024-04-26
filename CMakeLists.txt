@@ -33,4 +33,5 @@ add_executable(iouring_project
         benchmarking/io_uring/udp/standard/forwarder.c
         benchmarking/io_uring/udp/standard/forwarder.c
         benchmarking/io_uring/udp/standard/forwarder.c
+        benchmarking/socket/forward/raw_proxy.c
 )

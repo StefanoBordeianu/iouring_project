@@ -139,6 +139,10 @@ int add_recv_request(int socket, long readlength){
       return 1;
 }
 
+int add_send(int socket, void* buffer){
+
+}
+
 void startBatchingServer(int socketfd){
       struct io_uring_cqe* cqe [args.batching];
       int start = 0;
