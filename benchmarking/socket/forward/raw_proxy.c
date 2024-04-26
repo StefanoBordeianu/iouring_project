@@ -22,9 +22,17 @@ int main(int argc, char *argv[]){
       int sockfd;
       struct sockaddr_in listen_add, send_adr;
       char buffer[64];
+      int port = 2020;
+      int size = 64;
 
       if(argc>1){
-            duration = atoi(argv[1]);
+            port = atoi(argv[1]);
+      }
+      if(argc>2){
+            duration = atoi(argv[2]);
+      }
+      if(argc>3){
+            size = atoi(argv[3]);
       }
 
       signal(SIGALRM,sig_handler);
@@ -38,7 +46,7 @@ int main(int argc, char *argv[]){
 
       listen_add.sin_family = AF_INET;
       listen_add.sin_addr.s_addr =  INADDR_ANY ;
-      listen_add.sin_port = htons(PORT);
+      listen_add.sin_port = htons(port);
 
       if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
             perror("bind");
@@ -53,7 +61,7 @@ int main(int argc, char *argv[]){
       memset(&send_msg,0, sizeof(send_msg));
 
       while(1) {
-            n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &send_adr, &len);
+            n = recvfrom(sockfd, buffer, size, 0, (struct sockaddr *) &send_adr, &len);
 //            for (int i=0; i<64; i++) {
 //                  printf("%02x ", buffer[i]);
 //                  if ((i+1)%16 == 0) printf("\n");

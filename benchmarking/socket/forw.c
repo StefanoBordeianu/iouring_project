@@ -69,7 +69,7 @@ int main(int argc, char *argv[]){
             send_msg.msg_flags = 0 ;
             send_msg.msg_controllen = 0 ;
             send_msg.msg_control = NULL;
-            sendmsg(sockfd , &send_msg , 0 );
+            //sendmsg(sockfd , &send_msg , 0 );
             pkt++;
       }
 }
