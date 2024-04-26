@@ -52,14 +52,14 @@ int main(int argc, char *argv[]){
       struct  msghdr send_msg;
       memset(&send_msg,0, sizeof(send_msg));
 
-      while(1){
-            n = recvfrom(sockfd,buffer,sizeof(buffer),0,(struct sockaddr*)&send_adr,&len);
+      while(1) {
+            n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &send_adr, &len);
 //            for (int i=0; i<64; i++) {
 //                  printf("%02x ", buffer[i]);
 //                  if ((i+1)%16 == 0) printf("\n");
 //            }
 
-            if(!start){
+            if (!start) {
                   start = 1;
                   alarm(duration);
             }
@@ -70,10 +70,13 @@ int main(int argc, char *argv[]){
             send_msg.msg_namelen = sizeof(send_adr);
             send_msg.msg_iov = send_iovec;
             send_msg.msg_iovlen = 1;
-            send_msg.msg_flags = 0 ;
-            send_msg.msg_controllen = 0 ;
+            send_msg.msg_flags = 0;
+            send_msg.msg_controllen = 0;
             send_msg.msg_control = NULL;
-            sendmsg(sockfd , &send_msg , 0 );
+            if (sendmsg(sockfd, &send_msg, 0) < 0){
+                  perror("send");
+                  return 0;
+            }
             pkt++;
       }
 }
