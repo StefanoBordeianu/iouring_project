@@ -1,4 +1,4 @@
-rom trex_stl_lib.api import *
+from trex_stl_lib.api import *
 import argparse
 
 
