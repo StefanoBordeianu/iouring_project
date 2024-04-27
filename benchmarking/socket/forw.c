@@ -73,7 +73,12 @@ int main(int argc, char *argv[]){
                   alarm(duration);
             }
 
-            sendto(sockfd,buffer,64,0,(struct sockaddr*)&send_add,len);
+            n = sendto(sockfd,buffer,64,0,(struct sockaddr*)&send_add,len);
+            if(n<0){
+                  fprintf (stderr, "errno = %d ", errno);
+                  perror("send");
+                  return 0;
+            }
             pkt++;
       }
 }
