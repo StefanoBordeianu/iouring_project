@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
 
       while(1){
 
-            n = recvfrom(sockfd,buffer,sizeof(buffer),0,NULL,NULL);
+            n = recvfrom(sockfd,buffer,sizeof(buffer),0,(struct sockaddr*)&listen_add,&len);
             if(n<0){
                   fprintf (stderr, "errno = %d ", errno);
                   perror("recv");
@@ -68,6 +68,7 @@ int main(int argc, char *argv[]){
 
 
             if(!start){
+                  printf("Alarm armed\n");
                   start = 1;
                   alarm(duration);
             }
