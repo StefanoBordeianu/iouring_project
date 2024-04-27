@@ -21,7 +21,7 @@ void sig_handler(int signum){
 
 int main(int argc, char *argv[]){
       int sockfd;
-      struct sockaddr_in listen_add, send_adr;
+      struct sockaddr_in listen_add, send_add;
       char buffer[64];
 
       if(argc>1){
@@ -35,10 +35,10 @@ int main(int argc, char *argv[]){
       }
 
       memset(&listen_add,0,sizeof(listen_add));
-      memset(&send_adr,0,sizeof(send_adr));
+      memset(&send_add,0,sizeof(send_add));
 
       listen_add.sin_family = AF_INET;
-      listen_add.sin_addr.s_addr =  INADDR_ANY;
+      listen_add.sin_addr.s_addr = inet_addr("192.168.1.1");
       listen_add.sin_port = htons(PORT);
 
       if(bind(sockfd,(struct sockaddr*)&listen_add,sizeof(struct sockaddr)) < 0){
@@ -47,16 +47,19 @@ int main(int argc, char *argv[]){
             return 0;
       }
 
-      socklen_t len = sizeof(send_adr);
+      socklen_t len = sizeof(send_add);
       int n;
 
       struct iovec send_iovec[1];
       struct  msghdr send_msg;
       memset(&send_msg,0, sizeof(send_msg));
+      send_add.sin_family = AF_INET;
+      send_add.sin_port = htons(2020);
+      send_add.sin_addr.s_addr = inet_addr("192.168.1.2");
 
       while(1){
 
-            n = recvfrom(sockfd,buffer,sizeof(buffer),0,(struct sockaddr*)&send_adr,&len);
+            n = recvfrom(sockfd,buffer,sizeof(buffer),0,NULL,NULL);
             if(n<0){
                   fprintf (stderr, "errno = %d ", errno);
                   perror("recv");
@@ -69,7 +72,7 @@ int main(int argc, char *argv[]){
                   alarm(duration);
             }
 
-            sendto(sockfd,buffer,64,0,(struct sockaddr*)&send_adr,len);
+            sendto(sockfd,buffer,64,0,(struct sockaddr*)&send_add,len);
             pkt++;
       }
 }
