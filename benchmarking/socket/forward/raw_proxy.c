@@ -36,9 +36,16 @@ int main(int argc, char *argv[]){
       }
 
       signal(SIGALRM,sig_handler);
-      if((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP))<0){
-            perror("socket");
-            return 0;
+      if(argc > 4){
+            if((sockfd = socket(AF_INET, SOCK_DGRAM, 0))<0){
+                  perror("socket");
+                  return 0;
+            }
+      }else{
+            if((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP))<0){
+                  perror("socket");
+                  return 0;
+            }
       }
 
       memset(&listen_add,0,sizeof(listen_add));
