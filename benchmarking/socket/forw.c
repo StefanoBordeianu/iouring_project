@@ -38,7 +38,7 @@ int main(int argc, char *argv[]){
       memset(&send_add,0,sizeof(send_add));
 
       listen_add.sin_family = AF_INET;
-      listen_add.sin_addr.s_addr = INADDR_ANY;
+      listen_add.sin_addr.s_addr = inet_addr("192.168.1.1");
       listen_add.sin_port = htons(PORT);
 
       if(bind(sockfd,(struct sockaddr*)&listen_add,sizeof(struct sockaddr)) < 0){
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
 
       while(1){
 
-            n = recvfrom(sockfd,buffer,sizeof(buffer),0,(struct sockaddr*)&listen_add,&len);
+            n = recvfrom(sockfd,buffer,sizeof(buffer),0,NULL,NULL);
             if(n<0){
                   fprintf (stderr, "errno = %d ", errno);
                   perror("recv");
