@@ -6,8 +6,6 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define PORT 2020
-#define IP_ADDR "192.168.1.2"
 long pkt = 0;
 int duration = 10;
 int start = 0;
@@ -88,6 +86,7 @@ int main(int argc, char *argv[]){
             send_msg.msg_flags = 0;
             send_msg.msg_controllen = 0;
             send_msg.msg_control = NULL;
+
             if (sendmsg(sockfd, &send_msg, 0) < 0){
                   perror("send");
                   return 0;
