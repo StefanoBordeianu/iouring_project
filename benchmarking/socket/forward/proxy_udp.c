@@ -5,7 +5,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <signal.h>
-#include <linux/ip.h>
 
 long pkt = 0;
 int duration = 10;
@@ -16,18 +15,6 @@ void sig_handler(int signum){
       printf("Now closing\n\n");
       exit(0);
 }
-
-struct sockaddr_in handle_buffer(char* buffer,int size){
-      struct sockaddr_in res;
-      memset(&res,0,sizeof(res));
-
-      struct iphdr* iphdr = (struct iphdr*) buffer;
-      res.sin_addr.s_addr = iphdr->saddr;
-      iphdr->saddr = iphdr->daddr;
-      iphdr->daddr = res.sin_addr.s_addr;
-      return res;
-}
-
 
 int main(int argc, char *argv[]){
       int sockfd;
@@ -48,14 +35,10 @@ int main(int argc, char *argv[]){
 
       signal(SIGALRM,sig_handler);
 
-      if((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP))<0){
+      if((sockfd = socket(AF_INET, SOCK_DGRAM, 0))<0){
             perror("socket");
             return 0;
       }
-
-
-      int op = 1;
-      if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op)))
 
 
       memset(&listen_add,0,sizeof(listen_add));
@@ -73,23 +56,35 @@ int main(int argc, char *argv[]){
       socklen_t len = sizeof(send_adr);
       int n;
 
+      struct iovec send_iovec[1];
+      struct  msghdr send_msg;
+      memset(&send_msg,0, sizeof(send_msg));
+
       while(1) {
-            n = recvfrom(sockfd, buffer, size, 0, NULL, NULL);
-            if(n<0){
-                  perror("recv\n");
-                  return -1;
-            }
+            n = recvfrom(sockfd, buffer, size, 0, (struct sockaddr *) &send_adr, &len);
 //            for (int i=0; i<64; i++) {
 //                  printf("%02x ", buffer[i]);
 //                  if ((i+1)%16 == 0) printf("\n");
 //            }
 
-            send_adr = handle_buffer(buffer,size);
-            sendto(sockfd,buffer,size,0, (struct sockaddr*) &send_adr,len);
-
             if (!start) {
                   start = 1;
                   alarm(duration);
+            }
+
+            send_iovec[0].iov_base = buffer;
+            send_iovec[0].iov_len = n;
+            send_msg.msg_name = &send_adr;
+            send_msg.msg_namelen = sizeof(send_adr);
+            send_msg.msg_iov = send_iovec;
+            send_msg.msg_iovlen = 1;
+            send_msg.msg_flags = 0;
+            send_msg.msg_controllen = 0;
+            send_msg.msg_control = NULL;
+
+            if (sendmsg(sockfd, &send_msg, 0) < 0){
+                  perror("send");
+                  return 0;
             }
             pkt++;
       }
