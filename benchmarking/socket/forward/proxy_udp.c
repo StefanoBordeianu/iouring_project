@@ -62,29 +62,20 @@ int main(int argc, char *argv[]){
 
       while(1) {
             n = recvfrom(sockfd, buffer, size, 0, (struct sockaddr *) &send_adr, &len);
-//            for (int i=0; i<64; i++) {
-//                  printf("%02x ", buffer[i]);
-//                  if ((i+1)%16 == 0) printf("\n");
-//            }
+            if(n<0){
+                  perror("recv\n");
+                  return -1;
+            }
 
             if (!start) {
                   start = 1;
                   alarm(duration);
             }
 
-            send_iovec[0].iov_base = buffer;
-            send_iovec[0].iov_len = n;
-            send_msg.msg_name = &send_adr;
-            send_msg.msg_namelen = sizeof(send_adr);
-            send_msg.msg_iov = send_iovec;
-            send_msg.msg_iovlen = 1;
-            send_msg.msg_flags = 0;
-            send_msg.msg_controllen = 0;
-            send_msg.msg_control = NULL;
-
-            if (sendmsg(sockfd, &send_msg, 0) < 0){
-                  perror("send");
-                  return 0;
+            n = sendto(sockfd,buffer,size,0,(struct sockaddr*) &send_adr,len);
+            if(n<0){
+                  perror("send\n");
+                  return -1;
             }
             pkt++;
       }

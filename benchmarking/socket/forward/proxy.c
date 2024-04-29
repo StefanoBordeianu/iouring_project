@@ -79,17 +79,17 @@ int main(int argc, char *argv[]){
                   perror("recv\n");
                   return -1;
             }
-//            for (int i=0; i<64; i++) {
-//                  printf("%02x ", buffer[i]);
-//                  if ((i+1)%16 == 0) printf("\n");
-//            }
-
-            send_adr = handle_buffer(buffer,size);
-            sendto(sockfd,buffer,size,0, (struct sockaddr*) &send_adr,len);
 
             if (!start) {
                   start = 1;
                   alarm(duration);
+            }
+
+            send_adr = handle_buffer(buffer,size);
+            n = sendto(sockfd,buffer,size,0, (struct sockaddr*) &send_adr,len);
+            if(n<0){
+                  perror("send\n");
+                  return -1;
             }
             pkt++;
       }
