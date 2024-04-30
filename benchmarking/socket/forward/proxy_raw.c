@@ -74,10 +74,10 @@ int main(int argc, char *argv[]){
       listen_add.sin_addr.s_addr = inet_addr("192.168.1.1");;
       listen_add.sin_port = htons(port);
 
-      if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
-            perror("bind");
-            return 0;
-      }
+//      if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
+//            perror("bind");
+//            return 0;
+//      }
 
       socklen_t len = sizeof(send_adr);
       int n;
@@ -95,8 +95,6 @@ int main(int argc, char *argv[]){
             }
 
             send_adr = handle_buffer(buffer,size);
-            send_adr.sin_family = AF_INET;
-            send_adr.sin_addr.s_addr = inet_addr("192.168.1.2");
 
             n = sendto(sockfd,buffer,size,0, (struct sockaddr*) &send_adr,len);
             if(n<=0){
