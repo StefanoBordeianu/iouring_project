@@ -73,8 +73,11 @@ int main(int argc, char *argv[]){
             }
             send_adr.sin_addr.s_addr = inet_addr("192.168.1.2");
             n = sendto(sockfd,buffer,size,0,(struct sockaddr*) &send_adr,len);
-            if(n<0){
-                  perror("send\n");
+            if(n<=0){
+                  if(n==0)
+                        printf("sended zero bytes\n");
+                  else
+                        perror("send\n");
                   return -1;
             }
             pkt++;
