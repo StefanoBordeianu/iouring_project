@@ -56,14 +56,14 @@ int main(int argc, char *argv[]){
 
       int op = 1;
 //      char interface[] = "enp65s0f0np0";
-//      if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op))<0){
-//            perror("IP header option\n");
-//            return 0;
-//      }
-      if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
-            perror("Bind to device\n");
+      if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op))<0){
+            perror("IP header option\n");
             return 0;
       }
+//      if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
+//            perror("Bind to device\n");
+//            return 0;
+//      }
 
 
       memset(&listen_add,0,sizeof(listen_add));
