@@ -55,11 +55,11 @@ int main(int argc, char *argv[]){
 
 
       int op = 1;
-      char interface[] = "enp65s0f0np0";
-      if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op))<0){
-            perror("IP header option\n");
-            return 0;
-      }
+//      char interface[] = "enp65s0f0np0";
+//      if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op))<0){
+//            perror("IP header option\n");
+//            return 0;
+//      }
       if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
             perror("Bind to device\n");
             return 0;
@@ -95,8 +95,11 @@ int main(int argc, char *argv[]){
 
             send_adr = handle_buffer(buffer,size);
             n = sendto(sockfd,buffer,size,0, (struct sockaddr*) &send_adr,len);
-            if(n<0){
-                  perror("send\n");
+            if(n<=0){
+                  if(n==0)
+                        printf("sended zero bytes\n");
+                  else
+                        perror("send\n");
                   return -1;
             }
             pkt++;
