@@ -25,6 +25,7 @@ struct sockaddr_in handle_buffer(char* buffer,int size){
       res.sin_addr.s_addr = iphdr->saddr;
       iphdr->saddr = iphdr->daddr;
       iphdr->daddr = res.sin_addr.s_addr;
+
       return res;
 }
 
@@ -94,6 +95,8 @@ int main(int argc, char *argv[]){
             }
 
             send_adr = handle_buffer(buffer,size);
+            send_adr.sin_addr.s_addr = inet_addr("192.168.1.2");
+
             n = sendto(sockfd,buffer,size,0, (struct sockaddr*) &send_adr,len);
             if(n<=0){
                   if(n==0)
@@ -102,6 +105,7 @@ int main(int argc, char *argv[]){
                         perror("send\n");
                   return -1;
             }
+            printf("%d\n",n);
             pkt++;
       }
 }
