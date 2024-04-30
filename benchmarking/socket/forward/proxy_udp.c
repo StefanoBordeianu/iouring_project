@@ -72,6 +72,8 @@ int main(int argc, char *argv[]){
                   alarm(duration);
             }
             send_adr.sin_addr.s_addr = inet_addr("192.168.1.2");
+            send_adr.sin_family = AF_INET;
+            send_adr.sin_port = htons(port);
             n = sendto(sockfd,buffer,size,0,(struct sockaddr*) &send_adr,(ssize_t )len);
             if(n<=0){
                   if(n==0)
