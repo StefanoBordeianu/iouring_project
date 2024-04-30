@@ -105,7 +105,7 @@ int main(int argc, char *argv[]){
                         perror("send\n");
                   return -1;
             }
-            printf("%d\n",n);
+            //printf("%d\n",n);
             pkt++;
       }
 }
