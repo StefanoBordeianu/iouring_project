@@ -55,7 +55,15 @@ int main(int argc, char *argv[]){
 
 
       int op = 1;
-      if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op)))
+      char interface[] = "enp65s0f0np0";
+      if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op))<0){
+            perror("No IP header option\n");
+            return 0;
+      }
+      if(setsockopt(sockfd, SOL_SOCKET, IP_HDRINCL, interface, 13)<0){
+            perror("No IP header option\n");
+            return 0;
+      }
 
 
       memset(&listen_add,0,sizeof(listen_add));
