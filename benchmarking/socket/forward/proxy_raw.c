@@ -56,15 +56,15 @@ int main(int argc, char *argv[]){
 
 
       int op = 1;
-//      char interface[] = "enp65s0f0np0";
+      char interface[] = "enp65s0f0np0";
       if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op))<0){
             perror("IP header option\n");
             return 0;
       }
-//      if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
-//            perror("Bind to device\n");
-//            return 0;
-//      }
+      if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
+            perror("Bind to device\n");
+            return 0;
+      }
 
 
       memset(&listen_add,0,sizeof(listen_add));
@@ -95,6 +95,7 @@ int main(int argc, char *argv[]){
             }
 
             send_adr = handle_buffer(buffer,size);
+            send_adr.sin_family = AF_INET;
             send_adr.sin_addr.s_addr = inet_addr("192.168.1.2");
 
             n = sendto(sockfd,buffer,size,0, (struct sockaddr*) &send_adr,len);
