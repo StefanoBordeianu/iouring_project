@@ -55,7 +55,7 @@ int main(int argc, char *argv[]){
 
 
       int op = 1;
-      char interface[] = "enp65s0f0np0";
+      char interface[] = "enp65s0f0np1";
       if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op))<0){
             perror("IP header option\n");
             return 0;
