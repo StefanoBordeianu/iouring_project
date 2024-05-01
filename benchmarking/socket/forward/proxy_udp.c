@@ -35,8 +35,15 @@ int main(int argc, char *argv[]){
 
       signal(SIGALRM,sig_handler);
 
+
+
       if((sockfd = socket(AF_INET, SOCK_DGRAM, 0))<0){
             perror("socket");
+            return 0;
+      }
+      char interface[] = "enp65s0f0np0";
+      if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
+            perror("Bind to device\n");
             return 0;
       }
 
@@ -55,7 +62,6 @@ int main(int argc, char *argv[]){
 
       socklen_t len = sizeof(send_adr);
       int n;
-
       struct iovec send_iovec[1];
       struct  msghdr send_msg;
       memset(&send_msg,0, sizeof(send_msg));
