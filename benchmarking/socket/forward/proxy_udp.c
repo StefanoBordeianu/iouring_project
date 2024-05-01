@@ -48,10 +48,10 @@ int main(int argc, char *argv[]){
       listen_add.sin_addr.s_addr = inet_addr("192.168.1.1");;
       listen_add.sin_port = htons(port);
 
-//      if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
-//            perror("bind");
-//            return 0;
-//      }
+      if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
+            perror("bind");
+            return 0;
+      }
 
       socklen_t len = sizeof(send_adr);
       int n;
@@ -72,19 +72,31 @@ int main(int argc, char *argv[]){
                   alarm(duration);
             }
 
-            //try and set the IP manually
-            send_adr.sin_addr.s_addr = inet_addr("192.168.1.2");
-            send_adr.sin_family = AF_INET;
-            send_adr.sin_port = htons(port);
+            send_iovec[0].iov_base = buffer;
+            send_iovec[0].iov_len = n;
+            send_msg.msg_name = &send_adr;
+            send_msg.msg_namelen = sizeof(send_adr);
+            send_msg.msg_iov = send_iovec;
+            send_msg.msg_iovlen = 1;
+            send_msg.msg_flags = 0;
+            send_msg.msg_control = NULL;
+            send_msg.msg_controllen = 0;
+            sendmsg(sockfd,&send_msg,0);
 
-            n = sendto(sockfd,buffer,size,0,(struct sockaddr*) &send_adr,(ssize_t )len);
-            if(n<=0){
-                  if(n==0)
-                        printf("sended zero bytes\n");
-                  else
-                        perror("send\n");
-                  return -1;
-            }
+
+//            //try and set the IP manually
+//            send_adr.sin_addr.s_addr = inet_addr("192.168.1.2");
+//            send_adr.sin_family = AF_INET;
+//            send_adr.sin_port = htons(port);
+//
+//            n = sendto(sockfd,buffer,size,0,(struct sockaddr*) &send_adr,(ssize_t )len);
+//            if(n<=0){
+//                  if(n==0)
+//                        printf("sended zero bytes\n");
+//                  else
+//                        perror("send\n");
+//                  return -1;
+//            }
             pkt++;
       }
 }
