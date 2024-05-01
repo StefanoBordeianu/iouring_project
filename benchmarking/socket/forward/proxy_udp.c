@@ -81,7 +81,7 @@ int main(int argc, char *argv[]){
             send_msg.msg_control = NULL;
             send_msg.msg_controllen = 0;
             n = sendmsg(sockfd,&send_msg,0);
-            
+
 //            //try and set the IP manually
 //            send_adr.sin_addr.s_addr = inet_addr("192.168.1.2");
 //            send_adr.sin_family = AF_INET;

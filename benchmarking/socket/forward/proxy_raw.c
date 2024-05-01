@@ -36,27 +36,24 @@ int main(int argc, char *argv[]){
       char buffer[64];
       int port = 2020;
       int size = 64;
-
-      if(argc>1){
-            port = atoi(argv[1]);
-      }
-      if(argc>2){
-            duration = atoi(argv[2]);
-      }
-      if(argc>3){
-            size = atoi(argv[3]);
-      }
+      int op = 1;
+      char interface[] = "enp65s0f0np0";
 
       signal(SIGALRM,sig_handler);
+
+      if(argc>1)
+            port = atoi(argv[1]);
+      if(argc>2)
+            duration = atoi(argv[2]);
+      if(argc>3)
+            size = atoi(argv[3]);
+
 
       if((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP))<0){
             perror("socket");
             return 0;
       }
 
-
-      int op = 1;
-      char interface[] = "enp65s0f0np0";
       if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL, &op, sizeof(op))<0){
             perror("IP header option\n");
             return 0;
@@ -69,7 +66,6 @@ int main(int argc, char *argv[]){
 
       memset(&listen_add,0,sizeof(listen_add));
       memset(&send_adr,0,sizeof(send_adr));
-
       listen_add.sin_family = AF_INET;
       listen_add.sin_addr.s_addr = inet_addr("192.168.1.1");;
       listen_add.sin_port = htons(port);
