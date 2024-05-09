@@ -123,9 +123,11 @@ void add_send(struct request* req){
 
       socketfd = req->socket;
       msghdr = req->msg;
+      req->type = EVENT_TYPE_SEND;
       sqe = io_uring_get_sqe(ring);
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
+
 
       io_uring_prep_sendmsg(sqe,socketfd,msghdr,0);
       io_uring_sqe_set_data(sqe, req);
@@ -196,11 +198,9 @@ void start_loop(int socketfd){
       timespec.tv_sec = 0;
       timespec.tv_nsec = 100000000;
 
-      printf("adding receives\n");
       for(int i=0;i<initial_count;i++)
             add_receive(socketfd);
 
-      printf("enter cycle\n");
       while(1){
             int reaped,head,i;
             struct io_uring_cqe* cqe;
@@ -252,7 +252,6 @@ int main(int argc, char* argv[]){
 
       signal(SIGALRM,sig_handler);
       socketfd = create_socket();
-      printf("socket created\n");
 
       if(coop)
             params.flags |= IORING_SETUP_COOP_TASKRUN;
@@ -261,12 +260,10 @@ int main(int argc, char* argv[]){
       if(defer)
             params.flags |= IORING_SETUP_DEFER_TASKRUN;
 
-      printf("creating ring\n");
       if(io_uring_queue_init_params(1024,ring,&params)<0){
             printf("Init ring error\n");
             exit(-1);
       }
 
-      printf("starting server\n");
       start_loop(socketfd);
 }
