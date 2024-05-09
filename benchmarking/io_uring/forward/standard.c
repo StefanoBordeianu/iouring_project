@@ -180,6 +180,7 @@ void start_loop(int socketfd){
       timespec.tv_sec = 0;
       timespec.tv_nsec = 100000000;
 
+      printf("adding receives\n");
       for(int i=0;i<initial_count;i++)
             add_receive(socketfd);
 
