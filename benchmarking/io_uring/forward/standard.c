@@ -27,6 +27,7 @@ int initial_count = 64;
 struct io_uring* ring;
 int start = 0;
 long packets_received = 0;
+long packets_sent = 0;
 long total_events = 0;
 
 struct request{
@@ -166,6 +167,11 @@ void add_receive(int socketfd){
 void handle_send(struct io_uring_cqe* cqe){
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
 
+      if(cqe->res < 0){
+            printf("error on send,  number:%d\n",cqe->res);
+      }
+
+      packets_sent++;
       freemsg(req->msg);
       free(req);
 }
@@ -177,7 +183,11 @@ void handle_recv(struct io_uring_cqe* cqe){
             start = 1;
             alarm(duration);
       }
+      if(cqe->res < 0){
+            printf("error on receive,  number:%d\n",cqe->res);
+      }
 
+      packets_received++;
       add_send(req);
 }
 
@@ -221,7 +231,8 @@ void start_loop(int socketfd){
 
 void sig_handler(int signum){
       printf("\nReceived: %ld packets of size %d\n",packets_received, size);
-      printf("\nReceived: %ld events\n",total_events);
+      printf("\nSent: %ld packets of size %d\n",packets_sent, size);
+      printf("\nProcessed: %ld events\n",total_events);
 
       long speed = packets_received/duration;
       printf("Speed: %ld packets/second\n", speed);
