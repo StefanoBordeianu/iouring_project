@@ -9,9 +9,12 @@
 long pkt = 0;
 int duration = 10;
 int start = 0;
+int tot_send = 0;
 
 void sig_handler(int signum){
       printf("\nReceived: %ld packets\n",pkt/duration);
+      printf("\nSent: %ld bytes\n",tot_send);
+
       printf("Now closing\n\n");
       exit(0);
 }
@@ -60,6 +63,7 @@ int main(int argc, char *argv[]){
       struct iovec send_iovec[1];
       struct  msghdr send_msg;
       memset(&send_msg,0, sizeof(send_msg));
+
       while(1) {
             n = recvfrom(sockfd, buffer, size, 0, (struct sockaddr *) &send_adr, &len);
             if(n<0){
@@ -96,6 +100,7 @@ int main(int argc, char *argv[]){
                         perror("send\n");
                   return -1;
             }
+            tot_send +=n;
             pkt++;
       }
 }
