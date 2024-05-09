@@ -23,6 +23,7 @@ int single = 0;
 int defer = 0;
 int size = 64;
 int initial_count = 64;
+int ring_entries = 1024;
 
 struct io_uring* ring;
 int start = 0;
@@ -82,6 +83,8 @@ int parse_arguments(int argc, char* argv[]){
                   case 'i':
                         initial_count = atoi(optarg);
                         break;
+                  case 'r':
+                        ring_entries = atoi(optarg);
                   case 'h':
                         print_usage();
                         return -1;
@@ -135,7 +138,7 @@ void add_send(struct request* req){
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
 
-void add_receive(int socketfd){
+void add_starting_receive(int socketfd){
       struct msghdr* msghdr;
       struct sockaddr_in* src_add;
       struct iovec* iov;
@@ -166,6 +169,21 @@ void add_receive(int socketfd){
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
 
+void add_receive(struct request* req){
+      struct io_uring_sqe* sqe;
+
+      sqe = io_uring_get_sqe(ring);
+      if(sqe == NULL)
+            printf("ERROR while getting the sqe\n");
+
+      req->type = EVENT_TYPE_RECV;
+
+      io_uring_prep_recvmsg(sqe,req->socket, req->msg,0);
+      io_uring_sqe_set_data(sqe, req);
+      if(async)
+            io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
+}
+
 void handle_send(struct io_uring_cqe* cqe){
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
 
@@ -174,8 +192,7 @@ void handle_send(struct io_uring_cqe* cqe){
       }
 
       packets_sent++;
-      freemsg(req->msg);
-      free(req);
+      add_receive(req);
 }
 
 void handle_recv(struct io_uring_cqe* cqe){
@@ -192,7 +209,7 @@ void handle_recv(struct io_uring_cqe* cqe){
 
       packets_received++;
       add_send(req);
-      add_receive(req->socket);
+      //add_receive(req->socket);
 }
 
 void start_loop(int socketfd){
@@ -201,7 +218,7 @@ void start_loop(int socketfd){
       timespec.tv_nsec = 100000000;
 
       for(int i=0;i<initial_count;i++)
-            add_receive(socketfd);
+            add_starting_receive(socketfd);
 
       while(1){
             int reaped,head,i;
@@ -264,7 +281,7 @@ int main(int argc, char* argv[]){
       if(defer)
             params.flags |= IORING_SETUP_DEFER_TASKRUN;
 
-      if(io_uring_queue_init_params(1024,ring,&params)<0){
+      if(io_uring_queue_init_params(ring_entries,ring,&params)<0){
             printf("Init ring error\n");
             exit(-1);
       }
