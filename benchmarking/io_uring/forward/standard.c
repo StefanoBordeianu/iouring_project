@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <unistd.h>
 
 
 #define EVENT_TYPE_SEND 1
@@ -172,6 +173,11 @@ void handle_send(struct io_uring_cqe* cqe){
 void handle_recv(struct io_uring_cqe* cqe){
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
 
+      if(!start){
+            start = 1;
+            alarm(duration);
+      }
+
       add_send(req);
 }
 
@@ -221,6 +227,7 @@ void sig_handler(int signum){
       printf("Speed: %ld packets/second\n", speed);
       printf("Now closing\n\n");
       io_uring_queue_exit(ring);
+      free(ring);
       exit(0);
 }
 
