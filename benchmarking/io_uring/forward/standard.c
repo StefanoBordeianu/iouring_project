@@ -183,6 +183,7 @@ void start_loop(int socketfd){
       for(int i=0;i<initial_count;i++)
             add_receive(socketfd);
 
+      printf("enter cycle\n");
       while(1){
             int reaped,head,i;
             struct io_uring_cqe* cqe;
