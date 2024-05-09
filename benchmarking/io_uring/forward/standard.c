@@ -184,6 +184,7 @@ void handle_recv(struct io_uring_cqe* cqe){
       if(!start){
             start = 1;
             alarm(duration);
+            printf("alarm set\n");
       }
       if(cqe->res < 0){
             printf("error on receive,  number:%d\n",cqe->res);
@@ -191,6 +192,7 @@ void handle_recv(struct io_uring_cqe* cqe){
 
       packets_received++;
       add_send(req);
+      add_receive(req->socket);
 }
 
 void start_loop(int socketfd){
