@@ -233,6 +233,7 @@ int main(int argc, char* argv[]){
 
       signal(SIGALRM,sig_handler);
       socketfd = create_socket();
+      printf("socket created\n");
 
       if(coop)
             params.flags |= IORING_SETUP_COOP_TASKRUN;
@@ -241,7 +242,10 @@ int main(int argc, char* argv[]){
       if(defer)
             params.flags |= IORING_SETUP_DEFER_TASKRUN;
 
-      io_uring_queue_init_params(1024,ring,&params);
+      if(io_uring_queue_init_params(1024,ring,&params)){
+            printf("SERVER: Socket options error\n");
+            exit(-1);
+      }
 
       start_loop(socketfd);
 }
