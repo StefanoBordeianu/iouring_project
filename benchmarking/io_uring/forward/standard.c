@@ -242,8 +242,9 @@ int main(int argc, char* argv[]){
       if(defer)
             params.flags |= IORING_SETUP_DEFER_TASKRUN;
 
-      if(io_uring_queue_init_params(1024,ring,&params)){
-            printf("SERVER: Socket options error\n");
+      printf("creating ring\n");
+      if(io_uring_queue_init_params(1024,ring,&params)<0){
+            printf("Init ring error\n");
             exit(-1);
       }
 
