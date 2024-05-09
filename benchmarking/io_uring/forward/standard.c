@@ -226,8 +226,10 @@ void start_loop(int socketfd){
                   i++;
             }
 
-            if(i)
+            if(i) {
+                  total_events += i;
                   io_uring_cq_advance(ring, i);
+            }
       }
 }
 

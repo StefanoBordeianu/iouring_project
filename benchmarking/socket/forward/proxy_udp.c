@@ -19,7 +19,6 @@ void sig_handler(int signum){
 int main(int argc, char *argv[]){
       int sockfd;
       struct sockaddr_in listen_add, send_adr;
-      char buffer[64];
       int port = 2020;
       int size = 64;
       signal(SIGALRM,sig_handler);
@@ -28,14 +27,16 @@ int main(int argc, char *argv[]){
             port = atoi(argv[1]);
       if(argc>2)
             duration = atoi(argv[2]);
-      if(argc>3){
+      if(argc>3) {
             size = atoi(argv[3]);
+      }
 
 
       if((sockfd = socket(AF_INET, SOCK_DGRAM, 0))<0){
             perror("socket");
             return 0;
       }
+
       char interface[] = "enp65s0f0np0";
       if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
             perror("Bind to device\n");
@@ -53,7 +54,7 @@ int main(int argc, char *argv[]){
             return 0;
       }
 
-
+      char buffer[size];
       socklen_t len = sizeof(send_adr);
       int n;
       struct iovec send_iovec[1];

@@ -81,6 +81,8 @@ int create_socket(){
             printf("Failed to open a socket!\n");
             return 1;
       }
+
+
       if (fcntl(socket_fd, F_SETFL, O_NONBLOCK)) {
             printf("Failed to set O_NONBLOCK flag!\n");
             return 1;
