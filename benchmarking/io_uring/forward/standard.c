@@ -227,6 +227,7 @@ void sig_handler(int signum){
 int main(int argc, char* argv[]){
       int socketfd;
       struct io_uring_params params = {};
+      ring = malloc(sizeof(struct io_uring))
 
       if(parse_arguments(argc,argv)<0)
             return -1;
