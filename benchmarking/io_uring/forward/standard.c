@@ -248,5 +248,6 @@ int main(int argc, char* argv[]){
             exit(-1);
       }
 
+      printf("starting server\n");
       start_loop(socketfd);
 }
