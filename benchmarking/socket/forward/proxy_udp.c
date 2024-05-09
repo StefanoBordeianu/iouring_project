@@ -9,7 +9,7 @@
 long pkt = 0;
 int duration = 10;
 int start = 0;
-int tot_send = 0;
+long tot_send = 0;
 
 void sig_handler(int signum){
       printf("\nReceived: %ld packets\n",pkt/duration);
