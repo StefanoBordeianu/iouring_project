@@ -51,7 +51,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:")) != -1) {
             switch (opt) {
                   case 'p':
                         port = atoi(optarg);
