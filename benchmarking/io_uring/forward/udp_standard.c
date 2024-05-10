@@ -85,6 +85,7 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'r':
                         ring_entries = atoi(optarg);
+                        break;
                   case 'h':
                         print_usage();
                         return -1;
