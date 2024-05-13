@@ -299,6 +299,10 @@ int main(int argc, char* argv[]){
             params.flags |= IORING_SETUP_SINGLE_ISSUER;
       if(defer)
             params.flags |= IORING_SETUP_DEFER_TASKRUN;
+      if(sq_poll) {
+            params.flags |= IORING_SETUP_SQPOLL;
+            params.sq_thread_idle = 10000;
+      }
 
       if(io_uring_queue_init_params(ring_entries,ring,&params)<0){
             printf("Init ring error\n");
