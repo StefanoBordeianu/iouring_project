@@ -41,7 +41,9 @@ struct request{
 };
 
 void print_usage(){
-
+      printf("-p  port\n-b  batching size\n-d  test duration\n-s  packet size\n-i  initial request count\n"
+             "-r  ring size\n-T  is testing\n-A  async sqe option\n-C  coop option\n-S  single issue option\n"
+             "-d  defer taskrun option\n-F  fixed file\n-P  SQpoll\n");
 }
 
 void freemsg(struct msghdr * msg){
