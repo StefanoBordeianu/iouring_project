@@ -25,6 +25,7 @@ int size = 64;
 int initial_count = 64;
 int ring_entries = 1024;
 int fixed_file = 0;
+int sq_poll = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -53,7 +54,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:F")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FP")) != -1) {
             switch (opt) {
                   case 'p':
                         port = atoi(optarg);
@@ -90,6 +91,10 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'F':
                         fixed_file = 1;
+                        break;
+                  case 'P':
+                        fixed_file = 1;
+                        sq_poll = 1;
                         break;
                   case 'h':
                         print_usage();
