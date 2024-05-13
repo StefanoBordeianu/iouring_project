@@ -139,7 +139,6 @@ void add_send(struct request* req){
       if(async)
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
       io_uring_sqe_set_flags(sqe, IOSQE_IO_LINK);
-      io_uring_sqe_set_flags(sqe, IOSQE_IO_LINK);
       io_uring_submit(ring);
 }
 
