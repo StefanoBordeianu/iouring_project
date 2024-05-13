@@ -172,7 +172,6 @@ void add_starting_receive(int socketfd){
       if(async)
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
       io_uring_sqe_set_flags(sqe, IOSQE_IO_LINK);
-      io_uring_sqe_set_flags(sqe, IOSQE_CQE_SKIP_SUCCESS);
       add_send(req);
 }
 
