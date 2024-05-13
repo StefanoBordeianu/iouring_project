@@ -40,11 +40,11 @@ int main(int argc, char *argv[]){
             return 0;
       }
 
-//      char interface[] = "ens2f0np0";
-//      if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
-//            perror("Bind to device\n");
-//            return 0;
-//      }
+      char interface[] = "ens2f0np0";
+      if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
+            perror("Bind to device\n");
+            return 0;
+      }
 
       memset(&listen_add,0,sizeof(listen_add));
       memset(&send_adr,0,sizeof(send_adr));
