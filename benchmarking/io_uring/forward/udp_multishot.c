@@ -26,6 +26,8 @@ int initial_count = 64;
 int ring_entries = 1024;
 int fixed_file = 0;
 int sq_poll = 0;
+int napi = 0;
+int napi_timeout = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -56,7 +58,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FP")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:")) != -1) {
             switch (opt) {
                   case 'p':
                         port = atoi(optarg);
@@ -98,6 +100,12 @@ int parse_arguments(int argc, char* argv[]){
                         fixed_file = 1;
                         sq_poll = 1;
                         break;
+                  case 'N':
+                        napi = 1;
+                        break;
+                  case 'n':
+                        napi_timeout = atoi(optarg);
+                        break;
                   case 'h':
                         print_usage();
                         return -1;
@@ -116,11 +124,11 @@ int create_socket(){
             printf("SERVER: Error while creating the socket\n");
             exit(-1);
       }
-      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-                    &opt,sizeof (opt))){
-            printf("SERVER: Socket options error\n");
-            exit(-1);
-      }
+//      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+//                    &opt,sizeof (opt))){
+//            printf("SERVER: Socket options error\n");
+//            exit(-1);
+//      }
 
       add.sin_port = htons(port);
       add.sin_family = AF_INET;
@@ -176,30 +184,15 @@ void add_starting_receive(int socketfd){
       req->type = EVENT_TYPE_RECV;
       req->msg = msghdr;
       req->socket = socketfd;
-
-      io_uring_prep_recvmsg(sqe,socketfd, msghdr,0);
-      io_uring_sqe_set_data(sqe, req);
-      if(fixed_file)
-            io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
-      if(async)
-            io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
 
-void add_receive(struct request* req){
-      struct io_uring_sqe* sqe;
+void add_receive(struct request* req) {
+      struct io_uring_sqe *sqe;
 
       sqe = io_uring_get_sqe(ring);
-      if(sqe == NULL)
+      if (sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      req->type = EVENT_TYPE_RECV;
-
-      io_uring_prep_recvmsg(sqe,req->socket, req->msg,0);
-      io_uring_sqe_set_data(sqe, req);
-      if(fixed_file)
-            io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
-      if(async)
-            io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
 
 void handle_send(struct io_uring_cqe* cqe){
@@ -285,7 +278,7 @@ void sig_handler(int signum){
 }
 
 int main(int argc, char* argv[]){
-      int socketfd;
+      int socketfd,ret;
       struct io_uring_params params = {};
       ring = malloc(sizeof(struct io_uring));
 
@@ -316,6 +309,21 @@ int main(int argc, char* argv[]){
             if(io_uring_register_files(ring,fixed_files,1)<0){
                   printf("Register file error\n");
                   exit(-1);
+            }
+      }
+
+      if (napi) {
+            struct io_uring_napi n = {
+                    .prefer_busy_poll = napi > 1 ? 1 : 0,
+                    .busy_poll_to = napi_timeout,
+            };
+
+            ret = io_uring_register_napi(ring, &n);
+            if (ret) {
+                  fprintf(stderr, "io_uring_register_napi: %d\n", ret);
+                  if (ret != -EINVAL)
+                        return 1;
+                  fprintf(stderr, "NAPI not available, turned off\n");
             }
       }
 
