@@ -26,6 +26,8 @@ int initial_count = 64;
 int ring_entries = 1024;
 int fixed_file = 0;
 int sq_poll = 0;
+int napi = 0;
+int napi_timeout = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -56,7 +58,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FP")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:")) != -1) {
             switch (opt) {
                   case 'p':
                         port = atoi(optarg);
@@ -97,6 +99,12 @@ int parse_arguments(int argc, char* argv[]){
                   case 'P':
                         fixed_file = 1;
                         sq_poll = 1;
+                        break;
+                  case 'N':
+                        napi = 1;
+                        break;
+                  case 'n':
+                        napi_timeout = atoi(optarg);
                         break;
                   case 'h':
                         print_usage();
@@ -285,7 +293,7 @@ void sig_handler(int signum){
 }
 
 int main(int argc, char* argv[]){
-      int socketfd;
+      int socketfd,ret;
       struct io_uring_params params = {};
       ring = malloc(sizeof(struct io_uring));
 
@@ -316,6 +324,21 @@ int main(int argc, char* argv[]){
             if(io_uring_register_files(ring,fixed_files,1)<0){
                   printf("Register file error\n");
                   exit(-1);
+            }
+      }
+
+      if (napi) {
+            struct io_uring_napi n = {
+                    .prefer_busy_poll = napi > 1 ? 1 : 0,
+                    .busy_poll_to = napi_timeout,
+            };
+
+            ret = io_uring_register_napi(ring, &n);
+            if (ret) {
+                  fprintf(stderr, "io_uring_register_napi: %d\n", ret);
+                  if (ret != -EINVAL)
+                        return 1;
+                  fprintf(stderr, "NAPI not available, turned off\n");
             }
       }
 
