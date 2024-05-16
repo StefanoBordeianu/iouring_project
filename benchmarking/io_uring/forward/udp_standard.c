@@ -177,13 +177,19 @@ void add_starting_receive(int socketfd){
 
       iov->iov_len = size;
       iov->iov_base = malloc(size);
+      
       msghdr->msg_name = src_add;
       msghdr->msg_namelen = sizeof(struct sockaddr_in);
       msghdr->msg_iov = iov;
       msghdr->msg_iovlen = 1;
+
       req->type = EVENT_TYPE_RECV;
       req->msg = msghdr;
       req->socket = socketfd;
+
+
+
+
 
       io_uring_prep_recvmsg(sqe,socketfd, msghdr,0);
       io_uring_sqe_set_data(sqe, req);

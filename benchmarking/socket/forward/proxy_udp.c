@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
       memset(&listen_add,0,sizeof(listen_add));
       memset(&send_adr,0,sizeof(send_adr));
       listen_add.sin_family = AF_INET;
-      listen_add.sin_addr.s_addr = inet_addr("10.10.1.1");;
+      listen_add.sin_addr.s_addr = INADDR_ANY;
       listen_add.sin_port = htons(port);
 
       if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){

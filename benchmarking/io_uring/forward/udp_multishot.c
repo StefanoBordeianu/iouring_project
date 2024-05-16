@@ -28,6 +28,7 @@ int fixed_file = 0;
 int sq_poll = 0;
 int napi = 0;
 int napi_timeout = 0;
+int number_of_buffers = 128;
 
 struct io_uring* ring;
 int start = 0;
@@ -35,9 +36,11 @@ long packets_received = 0;
 long packets_sent = 0;
 long total_events = 0;
 int fixed_files[10];
+char** buffers;
+int grp_id = 40;
 
 struct request{
-    struct msghdr* msg;
+    //struct msghdr* msg;
     int type;
     int socket;
 };
@@ -140,13 +143,43 @@ int create_socket(){
       return socketfd;
 }
 
+struct io_uring_buf_ring* init_buff_ring(){
+      struct io_uring_buf_reg reg = {};
+      struct io_uring_buf_ring *br;
+      int i,bgid,ret;
+      long page_size = sysconf(_SC_PAGESIZE);
+      bgid = grp_id;
+
+      printf("SIZE: %ld\nSCpagesize:  %ld\n",
+             (number_of_buffers * sizeof(struct io_uring_buf)),page_size);
+      if (posix_memalign((void **) &br, page_size,number_of_buffers * sizeof(struct io_uring_buf))){
+            printf("1st Posix\n");
+            return NULL;
+      }
+      br = io_uring_setup_buf_ring(&ring,number_of_buffers,bgid,0,&ret);
+
+      if(posix_memalign((void**)buffers, page_size, number_of_buffers*size)){
+            printf("2nd Posix\n");
+            return NULL;
+      }
+
+      for (i = 0; i < number_of_buffers; i++) {
+            int mask = io_uring_buf_ring_mask(number_of_buffers);
+            io_uring_buf_ring_add(br, buffers[i], size, i,mask,i);
+      }
+
+      io_uring_buf_ring_advance(br, number_of_buffers);
+      return br;
+}
+
+
 void add_send(struct request* req){
       struct msghdr* msghdr;
       struct io_uring_sqe* sqe;
       int socketfd;
 
       socketfd = req->socket;
-      msghdr = req->msg;
+      //msghdr = req->msg;
       req->type = EVENT_TYPE_SEND;
       sqe = io_uring_get_sqe(ring);
       if(sqe == NULL)
@@ -160,19 +193,19 @@ void add_send(struct request* req){
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
 
-void add_starting_receive(int socketfd){
-      struct msghdr* msghdr;
-      struct sockaddr_in* src_add;
-      struct iovec* iov;
-      struct request* req;
-      struct io_uring_sqe* sqe;
+void add_recv_multishot(int socketfd) {
+      struct msghdr *msghdr;
+      struct sockaddr_in *src_add;
+      struct iovec *iov;
+      struct request *req;
+      struct io_uring_sqe *sqe;
 
       req = malloc(sizeof(struct request));
       iov = malloc(sizeof(struct iovec));
       msghdr = malloc(sizeof(struct msghdr));
       src_add = malloc(sizeof(struct sockaddr_in));
       sqe = io_uring_get_sqe(ring);
-      if(sqe == NULL)
+      if (sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
       iov->iov_len = size;
@@ -182,16 +215,10 @@ void add_starting_receive(int socketfd){
       msghdr->msg_iov = iov;
       msghdr->msg_iovlen = 1;
       req->type = EVENT_TYPE_RECV;
-      req->msg = msghdr;
+
       req->socket = socketfd;
-}
 
-void add_receive(struct request* req) {
-      struct io_uring_sqe *sqe;
-
-      sqe = io_uring_get_sqe(ring);
-      if (sqe == NULL)
-            printf("ERROR while getting the sqe\n");
+      sqe->ioprio |= IORING_RECV_MULTISHOT;
 
 }
 
@@ -203,7 +230,6 @@ void handle_send(struct io_uring_cqe* cqe){
       }
 
       packets_sent++;
-      add_receive(req);
 }
 
 void handle_recv(struct io_uring_cqe* cqe){
@@ -227,12 +253,6 @@ void start_loop(int socketfd){
       timespec.tv_sec = 0;
       timespec.tv_nsec = 100000000;
 
-      for(int i=0;i<initial_count;i++){
-            if(fixed_file==1)
-                  add_starting_receive(0);
-            else
-                  add_starting_receive(socketfd);
-      }
 
       while(1){
             int reaped,head,i;
@@ -298,6 +318,7 @@ int main(int argc, char* argv[]){
             params.flags |= IORING_SETUP_SQPOLL;
             params.sq_thread_idle = 10000;
       }
+
 
       if(io_uring_queue_init_params(ring_entries,ring,&params)<0){
             printf("Init ring error\n");
