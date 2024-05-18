@@ -38,9 +38,14 @@ long total_events = 0;
 int fixed_files[10];
 char** buffers;
 int grp_id = 40;
+struct msghdr* send_msgs;
+struct iovec* send_iovecs;
+struct io_uring_buf_ring* buff_ring;
 
 struct request{
-    //struct msghdr* msg;
+    struct msghdr* msg;
+    int group;
+    int buffer_id;
     int type;
     int socket;
 };
@@ -156,7 +161,7 @@ struct io_uring_buf_ring* init_buff_ring(){
             printf("1st Posix\n");
             return NULL;
       }
-      br = io_uring_setup_buf_ring(&ring,number_of_buffers,bgid,0,&ret);
+      br = io_uring_setup_buf_ring(ring,number_of_buffers,bgid,0,&ret);
 
       if(posix_memalign((void**)buffers, page_size, number_of_buffers*size)){
             printf("2nd Posix\n");
@@ -173,20 +178,22 @@ struct io_uring_buf_ring* init_buff_ring(){
 }
 
 
-void add_send(struct request* req){
-      struct msghdr* msghdr;
+void add_send(int socketfd, int buff_id){
       struct io_uring_sqe* sqe;
-      int socketfd;
+      struct request* req;
 
-      socketfd = req->socket;
-      //msghdr = req->msg;
+      req = malloc(sizeof(struct request));
+
+      req->buffer_id = buff_id;
       req->type = EVENT_TYPE_SEND;
+
       sqe = io_uring_get_sqe(ring);
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      io_uring_prep_sendmsg(sqe,socketfd,msghdr,0);
+      io_uring_prep_sendmsg(sqe,socketfd,&send_msgs[buff_id],0);
       io_uring_sqe_set_data(sqe, req);
+
       if(fixed_file)
             io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
       if(async)
@@ -214,25 +221,38 @@ void add_recv_multishot(int socketfd) {
       msghdr->msg_namelen = sizeof(struct sockaddr_in);
       msghdr->msg_iov = iov;
       msghdr->msg_iovlen = 1;
+
+      req->msg = msghdr;
       req->type = EVENT_TYPE_RECV;
-
       req->socket = socketfd;
+      io_uring_prep_recvmsg_multishot(sqe,socketfd,msghdr,0);
+      io_uring_sqe_set_flags(sqe,IOSQE_BUFFER_SELECT);
+      io_uring_sqe_set_data(sqe,req);
+      sqe->buf_group = grp_id;
 
-      sqe->ioprio |= IORING_RECV_MULTISHOT;
-
+      if(fixed_file)
+            io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
 }
 
 void handle_send(struct io_uring_cqe* cqe){
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
+      int mask = io_uring_buf_ring_mask(number_of_buffers);
+      int buff_id = req->buffer_id;
+
 
       if(cqe->res < 0){
             printf("error on send,  number:%d\n",cqe->res);
       }
 
+      io_uring_buf_ring_add(buff_ring,buffers[buff_id],size,buff_id, mask,1);
+      io_uring_buf_ring_advance(buff_ring,1);
+
       packets_sent++;
 }
 
 void handle_recv(struct io_uring_cqe* cqe){
+      unsigned int buff_idx;
+      struct io_uring_recvmsg_out* out_msg;
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
 
       if(!start){
@@ -244,15 +264,38 @@ void handle_recv(struct io_uring_cqe* cqe){
             printf("error on receive,  number:%d\n",cqe->res);
       }
 
-      packets_received++;
-      add_send(req);
+      if(!(cqe->flags & IORING_CQE_F_MORE)) {
+            printf("Need to readd recv\n");
+            add_recv_multishot(req->socket);
+            freemsg(req->msg);
+      }
+
+      buff_idx = cqe->flags >> IORING_CQE_BUFFER_SHIFT;
+      out_msg = io_uring_recvmsg_validate(&buffers[buff_idx],size,req->msg);
+      if(out_msg == NULL)
+            printf("Something wrong with recv buffers (not validated)\n");
+
+      send_iovecs[buff_idx] = (struct iovec) {
+              .iov_base = io_uring_recvmsg_payload(out_msg, req->msg),
+              .iov_len = io_uring_recvmsg_payload_length(out_msg, cqe->res, req->msg)
+      };
+      send_msgs[buff_idx] = (struct msghdr) {
+              .msg_namelen = out_msg->namelen,
+              .msg_name = io_uring_recvmsg_name(out_msg),
+              .msg_control = NULL,
+              .msg_controllen = 0,
+              .msg_iov = &send_iovecs[buff_idx],
+              .msg_iovlen = 1
+      };
+
+      add_send(req->socket, (int)buff_idx);
 }
 
 void start_loop(int socketfd){
       struct __kernel_timespec timespec;
       timespec.tv_sec = 0;
       timespec.tv_nsec = 100000000;
-
+      buff_ring = init_buff_ring();
 
       while(1){
             int reaped,head,i;
@@ -348,5 +391,7 @@ int main(int argc, char* argv[]){
             }
       }
 
+      send_iovecs = malloc(sizeof(struct iovec)*number_of_buffers);
+      send_msgs = malloc(sizeof(struct msghdr)*number_of_buffers);
       start_loop(socketfd);
 }
