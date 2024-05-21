@@ -174,6 +174,7 @@ struct io_uring_buf_ring* init_buff_ring(){
       }
 
       io_uring_buf_ring_advance(br, number_of_buffers);
+      printf("buffer ring created\n");
       return br;
 }
 
