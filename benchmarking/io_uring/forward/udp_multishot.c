@@ -162,6 +162,11 @@ struct io_uring_buf_ring* init_buff_ring(){
             return NULL;
       }
       br = io_uring_setup_buf_ring(ring,number_of_buffers,bgid,0,&ret);
+      if(br == NULL){
+            printf("setup buff ring\n");
+            return NULL;
+      }
+
 
       if(posix_memalign((void**)buffers, page_size, number_of_buffers*(size+128))){
             printf("2nd Posix\n");
