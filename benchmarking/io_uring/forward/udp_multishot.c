@@ -161,7 +161,9 @@ struct io_uring_buf_ring* init_buff_ring(){
             printf("1st Posix\n");
             return NULL;
       }
+      printf("1st posix passed\n");
       br = io_uring_setup_buf_ring(ring,number_of_buffers,bgid,0,&ret);
+      printf("setup buff ring passed\n");
       if(br == NULL){
             printf("setup buff ring\n");
             return NULL;
@@ -172,11 +174,12 @@ struct io_uring_buf_ring* init_buff_ring(){
             printf("2nd Posix\n");
             return NULL;
       }
-
+      printf("2nd posix passed\n");
       for (i = 0; i < number_of_buffers; i++) {
             int mask = io_uring_buf_ring_mask(number_of_buffers);
             io_uring_buf_ring_add(br, buffers[i], size+128, i,mask,i);
       }
+      printf("ring added passed\n");
 
       io_uring_buf_ring_advance(br, number_of_buffers);
       printf("buffer ring created\n");
