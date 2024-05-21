@@ -295,7 +295,9 @@ void start_loop(int socketfd){
       struct __kernel_timespec timespec;
       timespec.tv_sec = 0;
       timespec.tv_nsec = 100000000;
+
       buff_ring = init_buff_ring();
+      add_recv_multishot(socketfd);
 
       while(1){
             int reaped,head,i;
@@ -374,6 +376,7 @@ int main(int argc, char* argv[]){
                   printf("Register file error\n");
                   exit(-1);
             }
+            socketfd = 0;
       }
 
       if (napi) {
