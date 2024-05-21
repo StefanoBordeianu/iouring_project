@@ -170,7 +170,7 @@ struct io_uring_buf_ring* init_buff_ring(){
 
       for (i = 0; i < number_of_buffers; i++) {
             int mask = io_uring_buf_ring_mask(number_of_buffers);
-            io_uring_buf_ring_add(br, buffers[i], size, i,mask,i);
+            io_uring_buf_ring_add(br, buffers[i], size+128, i,mask,i);
       }
 
       io_uring_buf_ring_advance(br, number_of_buffers);
