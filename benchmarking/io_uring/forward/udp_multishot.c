@@ -28,7 +28,7 @@ int fixed_file = 0;
 int sq_poll = 0;
 int napi = 0;
 int napi_timeout = 0;
-int number_of_buffers = 128;
+int number_of_buffers = 2048;
 
 struct io_uring* ring;
 int start = 0;
@@ -163,7 +163,7 @@ struct io_uring_buf_ring* init_buff_ring(){
       }
       br = io_uring_setup_buf_ring(ring,number_of_buffers,bgid,0,&ret);
 
-      if(posix_memalign((void**)buffers, page_size, number_of_buffers*size)){
+      if(posix_memalign((void**)buffers, page_size, number_of_buffers*(size+128))){
             printf("2nd Posix\n");
             return NULL;
       }
