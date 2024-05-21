@@ -170,7 +170,7 @@ struct io_uring_buf_ring* init_buff_ring(){
       }
 
       printf("2nd posix starting\n");
-      if(posix_memalign((void**)buffers, page_size, number_of_buffers*(size))){
+      if(posix_memalign((void**)buffers, page_size, number_of_buffers*(size+64))){
             printf("2nd Posix\n");
             return NULL;
       }
