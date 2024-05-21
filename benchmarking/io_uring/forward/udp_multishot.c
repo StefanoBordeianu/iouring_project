@@ -42,6 +42,7 @@ int grp_id = 40;
 struct msghdr* send_msgs;
 struct iovec* send_iovecs;
 struct io_uring_buf_ring* buff_ring;
+struct msghdr msg;
 
 struct request{
     struct msghdr* msg;
@@ -57,11 +58,11 @@ void print_usage(){
              "-d  defer taskrun option\n-F  fixed file\n-P  SQpoll\n");
 }
 
-void freemsg(struct msghdr * msg){
-      free(msg->msg_name);
-      free(msg->msg_iov->iov_base);
-      free(msg->msg_iov);
-      free(msg);
+void freemsg(struct msghdr * msghdr){
+      free(msghdr->msg_name);
+      free(msghdr->msg_iov->iov_base);
+      free(msghdr->msg_iov);
+      free(msghdr);
 }
 
 int parse_arguments(int argc, char* argv[]){
@@ -180,8 +181,8 @@ struct io_uring_buf_ring* init_buff_ring(){
 
       for (i = 0; i < number_of_buffers; i++) {
             int mask = io_uring_buf_ring_mask(number_of_buffers);
-            buffers[i] = malloc(size+200);
-            io_uring_buf_ring_add(br, buffers[i], size+200, i,mask,i);
+            buffers[i] = malloc(size+sizeof(struct io_uring_recvmsg_out));
+            io_uring_buf_ring_add(br, buffers[i], (size+sizeof(struct io_uring_recvmsg_out)), i,mask,i);
       }
       printf("ring added passed\n");
 
@@ -281,7 +282,7 @@ void add_recv_multishot(int socketfd) {
       req->msg = msghdr;
       req->type = EVENT_TYPE_RECV;
       req->socket = socketfd;
-      io_uring_prep_recvmsg_multishot(sqe,socketfd,msghdr,0);
+      io_uring_prep_recvmsg_multishot(sqe,socketfd,&msg,0);
       io_uring_sqe_set_flags(sqe,IOSQE_BUFFER_SELECT);
       io_uring_sqe_set_data(sqe,req);
       sqe->buf_group = grp_id;
@@ -323,17 +324,16 @@ void handle_recv(struct io_uring_cqe* cqe){
       if(!(cqe->flags & IORING_CQE_F_MORE)) {
             printf("Need to readd recv\n");
             add_recv_multishot(req->socket);
-            freemsg(req->msg);
       }
 
       buff_idx = cqe->flags >> IORING_CQE_BUFFER_SHIFT;
-      out_msg = io_uring_recvmsg_validate(&buffers[buff_idx],size,req->msg);
+      out_msg = io_uring_recvmsg_validate(&buffers[buff_idx],size,&msg);
       if(out_msg == NULL)
             printf("Something wrong with recv buffers (not validated)\n");
 
       send_iovecs[buff_idx] = (struct iovec) {
-              .iov_base = io_uring_recvmsg_payload(out_msg, req->msg),
-              .iov_len = io_uring_recvmsg_payload_length(out_msg, cqe->res, req->msg)
+              .iov_base = io_uring_recvmsg_payload(out_msg, &msg),
+              .iov_len = io_uring_recvmsg_payload_length(out_msg, cqe->res, &msg)
       };
       send_msgs[buff_idx] = (struct msghdr) {
               .msg_namelen = out_msg->namelen,
@@ -450,6 +450,9 @@ int main(int argc, char* argv[]){
             }
       }
 
+      memset(&msg, 0, sizeof(msg));
+      msg.msg_namelen = sizeof(struct sockaddr_storage);
+      msg.msg_controllen = 0;
       send_iovecs = malloc(sizeof(struct iovec)*number_of_buffers);
       send_msgs = malloc(sizeof(struct msghdr)*number_of_buffers);
       start_loop(socketfd);
