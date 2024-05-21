@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 
 #define EVENT_TYPE_SEND 1
@@ -36,7 +37,7 @@ long packets_received = 0;
 long packets_sent = 0;
 long total_events = 0;
 int fixed_files[10];
-char** buffers;
+char* buffers;
 int grp_id = 40;
 struct msghdr* send_msgs;
 struct iovec* send_iovecs;
@@ -169,15 +170,17 @@ struct io_uring_buf_ring* init_buff_ring(){
             return NULL;
       }
 
-      printf("2nd posix starting\n");
-      if(posix_memalign((void**)buffers, page_size, number_of_buffers*(size+64))){
-            printf("2nd Posix\n");
-            return NULL;
-      }
-      printf("2nd posix passed\n");
+      //TODO: bugged, for some reason it will segfault
+//      if(posix_memalign((void**)buffers, page_size, number_of_buffers*(size+64))){
+//            printf("2nd Posix\n");
+//            return NULL;
+//      }
+
+      buffers = malloc((size+64)*number_of_buffers);
+
       for (i = 0; i < number_of_buffers; i++) {
             int mask = io_uring_buf_ring_mask(number_of_buffers);
-            io_uring_buf_ring_add(br, buffers[i], size+64, i,mask,i);
+            io_uring_buf_ring_add(br, &buffers[i], size+64, i,mask,i);
       }
       printf("ring added passed\n");
 
@@ -186,6 +189,49 @@ struct io_uring_buf_ring* init_buff_ring(){
       return br;
 }
 
+//int setup_buffer_pool(struct ctx *ctx)
+//{
+//      int ret, i;
+//      void *mapped;
+//      struct io_uring_buf_reg reg = { .ring_addr = 0,
+//              .ring_entries = number_of_buffers,
+//              .bgid = 0 };
+//      unsigned long buf_ring_size;
+//      int buffer_size = size +64;
+//
+//      buf_ring_size = (sizeof(struct io_uring_buf) + buffer_size) * number_of_buffers;
+//      mapped = mmap(NULL, buf_ring_size, PROT_READ | PROT_WRITE,
+//                    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+//      if (mapped == MAP_FAILED) {
+//            fprintf(stderr, "buf_ring mmap: %s\n", strerror(errno));
+//            return -1;
+//      }
+//      buff_ring = (struct io_uring_buf_ring *)mapped;
+//
+//      io_uring_buf_ring_init(buff_ring);
+//
+//      reg = (struct io_uring_buf_reg) {
+//              .ring_addr = (unsigned long)buff_ring,
+//              .ring_entries = number_of_buffers,
+//              .bgid = 0
+//      };
+//
+//      ret = io_uring_register_buf_ring(ring, &reg, 0);
+//      if (ret) {
+//            fprintf(stderr, "buf_ring init failed: %s\n"
+//                            "NB This requires a kernel version >= 6.0\n",
+//                    strerror(-ret));
+//            return ret;
+//      }
+//
+//      for (i = 0; i < BUFFERS; i++) {
+//            io_uring_buf_ring_add(ctx->buf_ring, get_buffer(ctx, i), buffer_size(ctx), i,
+//                                  io_uring_buf_ring_mask(BUFFERS), i);
+//      }
+//      io_uring_buf_ring_advance(ctx->buf_ring, BUFFERS);
+//
+//      return 0;
+//}
 
 void add_send(int socketfd, int buff_id){
       struct io_uring_sqe* sqe;
@@ -253,7 +299,7 @@ void handle_send(struct io_uring_cqe* cqe){
             printf("error on send,  number:%d\n",cqe->res);
       }
 
-      io_uring_buf_ring_add(buff_ring,buffers[buff_id],size,buff_id, mask,1);
+      io_uring_buf_ring_add(buff_ring,&buffers[buff_id],size,buff_id, mask,1);
       io_uring_buf_ring_advance(buff_ring,1);
 
       packets_sent++;
