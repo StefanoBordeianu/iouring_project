@@ -37,7 +37,7 @@ long packets_received = 0;
 long packets_sent = 0;
 long total_events = 0;
 int fixed_files[10];
-char* buffers;
+char** buffers;
 int grp_id = 40;
 struct msghdr* send_msgs;
 struct iovec* send_iovecs;
@@ -176,11 +176,12 @@ struct io_uring_buf_ring* init_buff_ring(){
 //            return NULL;
 //      }
 
-      buffers = malloc((size+64)*number_of_buffers);
+      buffers = malloc(sizeof(char*)*number_of_buffers);
 
       for (i = 0; i < number_of_buffers; i++) {
             int mask = io_uring_buf_ring_mask(number_of_buffers);
-            io_uring_buf_ring_add(br, &buffers[i], size+64, i,mask,i);
+            buffers[i] = malloc(size+200);
+            io_uring_buf_ring_add(br, buffers[i], size+200, i,mask,i);
       }
       printf("ring added passed\n");
 
@@ -299,7 +300,7 @@ void handle_send(struct io_uring_cqe* cqe){
             printf("error on send,  number:%d\n",cqe->res);
       }
 
-      io_uring_buf_ring_add(buff_ring,&buffers[buff_id],size,buff_id, mask,1);
+      io_uring_buf_ring_add(buff_ring,buffers[buff_id],size,buff_id, mask,1);
       io_uring_buf_ring_advance(buff_ring,1);
 
       packets_sent++;
