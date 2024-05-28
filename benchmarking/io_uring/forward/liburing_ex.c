@@ -231,6 +231,7 @@ static void recycle_buffer(struct ctx *ctx, int idx)
 static int process_cqe_send(struct ctx *ctx, struct io_uring_cqe *cqe)
 {
       int idx = cqe->user_data;
+      pkt_count++;
 
       if (cqe->res < 0)
             fprintf(stderr, "bad send %s\n", strerror(-cqe->res));
@@ -446,7 +447,6 @@ int main(int argc, char *argv[])
             }
 
             count = io_uring_peek_batch_cqe(&ctx.ring, &cqes[0], CQES);
-            pkt_count += count;
             for (i = 0; i < count; i++) {
                   ret = process_cqe(&ctx, cqes[i], 0);
                   if (ret)
