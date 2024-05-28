@@ -193,7 +193,6 @@ void add_starting_receive(int socketfd){
             io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
       if(async)
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
-      printf("added a receive multishot requet\n");
 }
 
 void add_receive(struct request* req){
