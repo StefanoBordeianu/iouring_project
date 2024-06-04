@@ -34,6 +34,12 @@ struct args{
 
 struct args args;
 
+void print_usage(){
+      printf("-p  port\n-b  receiving batching size\n-d  test duration\n-s  packet size\n"
+             "-T  is testing (currently useless)\n-d  enable defer taskrun option\n"
+             "-A  enable async sqe option\n-C  enable coop option\n-S  enable single issue option\n");
+}
+
 void freemsg(struct msghdr * msg){
       free(msg->msg_iov->iov_base);
       free(msg->msg_iov);
@@ -80,6 +86,9 @@ void parseArgs(int argc, char* argv[]){
                   case 'f':
                         args.defer = 1;
                         break;
+                  case 'h':
+                        print_usage();
+                        exit(-1);
             }
       }
 }

@@ -32,6 +32,12 @@ struct sendmsg_ctx {
     struct iovec iov;
 };
 
+void print_usage(){
+      printf("-p  port\n-b  receiving batching size\n-b  log2(BufferSize) NOTE: the buffer will "
+             "include the io_uring_recvmsg_out struct so it needs to be bigger than the packet size (ex -b 8 for 64 bytes packets)\n"
+             "-C  enable coop option\n-S  enable single issue option\n-N  enable napi\n-n  napi timeout");
+}
+
 struct ctx {
     struct io_uring ring;
     struct io_uring_buf_ring *buf_ring;
@@ -365,7 +371,7 @@ int main(int argc, char *argv[])
       ctx.buf_shift = BUF_SHIFT;
       ctx.duration = 10;
 
-      while ((opt = getopt(argc, argv, "6vp:b:d:CSNn:")) != -1) {
+      while ((opt = getopt(argc, argv, "6vp:b:d:CSNn:h")) != -1) {
             switch (opt) {
                   case 'C':
                         coop = 1;
@@ -394,10 +400,8 @@ int main(int argc, char *argv[])
                   case 'd':
                         ctx.duration = atoi(optarg);
                         break;
-                  default:
-                        fprintf(stderr, "Usage: %s [-p port] "
-                                        "[-b log2(BufferSize)] [-6] [-v]\n",
-                                argv[0]);
+                  case 'h':
+                        print_usage();
                         exit(-1);
             }
       }

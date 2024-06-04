@@ -172,10 +172,6 @@ int main(int argc, char *argv[]){
       int socketfd;
       struct io_uring_params params;
 
-      if (geteuid()) {
-            fprintf(stderr, "You need root privileges to run this program.\n");
-            return 1;
-      }
 
       memset(&params, 0, sizeof(params));
       params.flags |= IORING_SETUP_SQPOLL;
