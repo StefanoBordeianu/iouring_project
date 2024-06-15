@@ -12,7 +12,7 @@ int duration = 10;
 int start = 0;
 
 void sig_handler(int signum){
-      printf("\nReceived: %ld packets\n",pkt/duration);
+      printf("\nReceived: %ld packets/s\n",pkt/duration);
       printf("Now closing\n\n");
       exit(0);
 }
@@ -22,7 +22,7 @@ struct sockaddr_in handle_buffer(char* buffer,int size){
       memset(&res,0,sizeof(res));
 
       struct iphdr* iphdr = (struct iphdr*) buffer;
-      //res.sin_addr.s_addr = iphdr->saddr;
+      res.sin_addr.s_addr = iphdr->saddr;
       iphdr->saddr = iphdr->daddr;
       iphdr->daddr = res.sin_addr.s_addr;
 
