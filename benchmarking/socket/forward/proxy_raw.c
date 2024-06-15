@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
             size = atoi(argv[3]);
 
 
-      if((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW))<0){
+      if((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP))<0){
             perror("socket");
             return 0;
       }
