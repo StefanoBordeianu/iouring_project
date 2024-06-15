@@ -23,8 +23,8 @@ struct sockaddr_in handle_buffer(char* buffer,int size){
 
       struct iphdr* iphdr = (struct iphdr*) buffer;
       res.sin_addr.s_addr = iphdr->saddr;
-      iphdr->saddr = iphdr->daddr;
-      iphdr->daddr = res.sin_addr.s_addr;
+      //iphdr->saddr = iphdr->daddr;
+      //iphdr->daddr = res.sin_addr.s_addr;
 
       return res;
 }
