@@ -37,7 +37,7 @@ int main(int argc, char *argv[]){
       int port = 2020;
       int size = 64;
       int op = 1;
-      char interface[] = "enp65s0f0np0";
+      char interface[] = "ens1f1np1";
 
       signal(SIGALRM,sig_handler);
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
             size = atoi(argv[3]);
 
 
-      if((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP))<0){
+      if((sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW))<0){
             perror("socket");
             return 0;
       }

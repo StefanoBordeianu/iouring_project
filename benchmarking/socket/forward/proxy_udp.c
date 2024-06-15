@@ -40,7 +40,7 @@ int main(int argc, char *argv[]){
             return 0;
       }
 
-      char interface[] = "ens2f0np0";
+      char interface[] = "ens1f1np1";
       if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 13)<0){
             perror("Bind to device\n");
             return 0;
