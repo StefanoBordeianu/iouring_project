@@ -67,10 +67,10 @@ int main(int argc, char *argv[]){
       listen_add.sin_addr.s_addr = inet_addr("192.168.1.1");;
       listen_add.sin_port = htons(port);
 
-//      if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
-//            perror("bind");
-//            return 0;
-//      }
+      if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
+            perror("bind");
+            return 0;
+      }
 
       socklen_t len = sizeof(send_adr);
       int n;
