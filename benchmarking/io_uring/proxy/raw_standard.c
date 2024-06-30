@@ -241,6 +241,7 @@ void handle_send(struct io_uring_cqe* cqe){
 
       if(cqe->res < 0){
             printf("error on send,  number:%d\n",cqe->res);
+            printf("Error data:\n%d index\n",req->index);
       }
 
       packets_sent++;
