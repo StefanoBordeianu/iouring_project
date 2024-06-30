@@ -246,7 +246,7 @@ void handle_send(struct io_uring_cqe* cqe){
 
       packets_sent++;
       freemsg(req->msg);
-      add_starting_receive(req->socket,req->index);
+      add_receive(req);
 }
 
 void handle_recv(struct io_uring_cqe* cqe){
