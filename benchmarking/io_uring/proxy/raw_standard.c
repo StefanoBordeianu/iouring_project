@@ -245,7 +245,7 @@ void handle_send(struct io_uring_cqe* cqe){
       }
 
       packets_sent++;
-      freemsg(req->msg);
+      //freemsg(req->msg);
       add_receive(req);
 }
 
