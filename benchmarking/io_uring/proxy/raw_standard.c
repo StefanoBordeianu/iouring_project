@@ -29,6 +29,7 @@ int sq_poll = 0;
 int napi = 0;
 int napi_timeout = 0;
 
+int iter = 0;
 struct io_uring* ring;
 int start = 0;
 long packets_received = 0;
@@ -241,7 +242,7 @@ void handle_send(struct io_uring_cqe* cqe){
 
       if(cqe->res < 0){
             printf("error on send,  number:%d\n",cqe->res);
-            printf("Error data:\n%d index\n",req->index);
+            printf("Error data:  %d index,   %d iteration\n",req->index,iter);
       }
 
       packets_sent++;
@@ -314,6 +315,7 @@ void start_loop(int socketfd){
                   total_events += i;
                   io_uring_cq_advance(ring, i);
             }
+            iter++;
       }
 }
 
