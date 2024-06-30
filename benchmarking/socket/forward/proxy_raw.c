@@ -33,7 +33,6 @@ struct sockaddr_in handle_buffer(char* buffer,int size){
 int main(int argc, char *argv[]){
       int sockfd;
       struct sockaddr_in listen_add, send_adr;
-      char buffer[64];
       int port = 2020;
       int size = 64;
       int op = 1;
@@ -75,6 +74,7 @@ int main(int argc, char *argv[]){
             return 0;
       }
 
+      char buffer[size];
       socklen_t len = sizeof(send_adr);
       int n;
 

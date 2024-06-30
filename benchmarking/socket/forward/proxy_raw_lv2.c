@@ -7,6 +7,10 @@
 #include <signal.h>
 #include <linux/ip.h>
 #include<net/ethernet.h>
+#include <linux/if_packet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+
 
 long pkt = 0;
 int duration = 10;
@@ -33,14 +37,20 @@ struct sockaddr_in handle_buffer(char* buffer,int size){
 
 int main(int argc, char *argv[]){
       int sockfd;
-      struct sockaddr_in listen_add, send_adr;
-      char buffer[64];
+      struct sockaddr_ll recv_add, send_adr;
       int port = 2020;
       int size = 64;
+      struct sockaddr_ll bind_ll;
+      struct ifreq if_idx;
+      struct msghdr msghdr;
+      struct iovec iov;
       int op = 1;
       char interface[] = "ens1f1np1";
 
       signal(SIGALRM,sig_handler);
+      memset(&recv_add,0,sizeof(recv_add));
+      memset(&send_adr,0,sizeof(send_adr));
+      memset(&bind_ll,0,sizeof(bind_ll));
 
       if(argc>1)
             port = atoi(argv[1]);
@@ -50,52 +60,56 @@ int main(int argc, char *argv[]){
             size = atoi(argv[3]);
 
 
-      if((sockfd = socket(AF_PACKET,SOCK_RAW,htons(ETH_P_ALL)))<0){
+      if((sockfd = socket(AF_PACKET,SOCK_RAW,htons(ETH_P_IP)))<0){
             perror("socket");
             return 0;
       }
+      memset(&if_idx, 0, sizeof(struct ifreq));
+      strncpy(if_idx.ifr_name, interface ,9);
 
-      if(setsockopt(sockfd, SOL_SOCKET, SO_BINDTODEVICE, interface, 9)<0){
-            perror("Bind to device\n");
-            return 0;
-      }
+      if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0)
+            perror("SIOCGIFINDEX");
 
+      bind_ll.sll_family = AF_PACKET;
+      bind_ll.sll_protocol = htons(ETH_P_IP);
+      bind_ll.sll_ifindex = if_idx.ifr_ifindex;
 
-      memset(&listen_add,0,sizeof(listen_add));
-      memset(&send_adr,0,sizeof(send_adr));
-      listen_add.sin_family = AF_INET;
-      listen_add.sin_addr.s_addr = inet_addr("192.168.1.1");;
-      listen_add.sin_port = htons(port);
 
 //      if(bind(sockfd,(const struct sockaddr*)&listen_add,sizeof(listen_add)) < 0){
 //            perror("bind");
 //            return 0;
 //      }
 
-      socklen_t len = sizeof(send_adr);
-      int n;
+      char buffer[size];
+      iov.iov_len = size;
+      iov.iov_base = buffer;
 
-      while(1) {
-            n = recvfrom(sockfd, buffer, size, 0, (struct sockaddr*)&send_adr, (socklen_t*)&len);
-            if(n<0){
-                  perror("recv\n");
-                  return -1;
+      msghdr.msg_name = &recv_add;
+      msghdr.msg_namelen = sizeof(struct sockaddr_ll);
+      msghdr.msg_iov = &iov;
+      msghdr.msg_iovlen = 1;
+
+      while(1){
+            long res;
+            if((res = recvmsg(sockfd,&msghdr,0))<0){
+                  printf("recv error:%ld\n",res);
             }
 
-            if (!start) {
-                  start = 1;
-                  alarm(duration);
-            }
+            recv_add.sll_ifindex = if_idx.ifr_ifindex;
+            recv_add.sll_protocol = htons(ETH_P_IP);
+            recv_add.sll_halen = ETH_ALEN;
+            recv_add.sll_addr[0] = 0x9c;
+            recv_add.sll_addr[1] = 0xdc;
+            recv_add.sll_addr[2] = 0x71;
+            recv_add.sll_addr[3] = 0x5d;
+            recv_add.sll_addr[4] = 0x31;
+            recv_add.sll_addr[5] = 0xd1;
 
-            n = sendto(sockfd,buffer,size,0, (struct sockaddr*) &send_adr,len);
-            if(n<=0){
-                  if(n==0)
-                        printf("sended zero bytes\n");
-                  else
-                        perror("send\n");
-                  return -1;
+
+
+            if((res = sendto(sockfd, msghdr.msg_iov->iov_base , size,0, (struct sockaddr*)&recv_add, sizeof(struct sockaddr_ll)))<0){
+                  printf("send error:%ld\n",res);
             }
-            //printf("%d\n",n);
-            pkt++;
       }
+
 }
