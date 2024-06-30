@@ -35,11 +35,13 @@ long packets_received = 0;
 long packets_sent = 0;
 long total_events = 0;
 int fixed_files[10];
+struct request* requests;
 
 struct request{
     struct msghdr* msg;
     int type;
     int socket;
+    int index;
 };
 
 void print_usage(){
@@ -182,14 +184,14 @@ void add_send(struct request* req){
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
 
-void add_starting_receive(int socketfd){
+void add_starting_receive(int socketfd,int index){
       struct msghdr* msghdr;
       struct sockaddr_in* src_add;
       struct iovec* iov;
       struct request* req;
       struct io_uring_sqe* sqe;
 
-      req = malloc(sizeof(struct request));
+      req = &requests[index];
       iov = malloc(sizeof(struct iovec));
       msghdr = malloc(sizeof(struct msghdr));
       src_add = malloc(sizeof(struct sockaddr_in));
@@ -242,7 +244,8 @@ void handle_send(struct io_uring_cqe* cqe){
       }
 
       packets_sent++;
-      add_receive(req);
+      freemsg(req->msg);
+      add_starting_receive(req->socket,req->index);
 }
 
 void handle_recv(struct io_uring_cqe* cqe){
@@ -261,16 +264,26 @@ void handle_recv(struct io_uring_cqe* cqe){
       add_send(req);
 }
 
+void initialize_local(){
+      requests = malloc(sizeof(struct request)*initial_count);
+
+      for(int i=0;i<initial_count;i++){
+            requests[i].index = i;
+      }
+}
+
 void start_loop(int socketfd){
       struct __kernel_timespec timespec;
       timespec.tv_sec = 0;
       timespec.tv_nsec = 100000000;
 
+      initialize_local();
+
       for(int i=0;i<initial_count;i++){
             if(fixed_file==1)
-                  add_starting_receive(0);
+                  add_starting_receive(0,i);
             else
-                  add_starting_receive(socketfd);
+                  add_starting_receive(socketfd,i);
       }
 
       while(1){
