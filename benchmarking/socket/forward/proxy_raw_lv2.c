@@ -125,7 +125,7 @@ int main(int argc, char *argv[]){
             eh->ether_dhost[2] = eh->ether_shost[2];
             eh->ether_dhost[3] = eh->ether_shost[3];
             eh->ether_dhost[4] = eh->ether_shost[4];
-            eh->ether_dhost[5] = eh->ether_shost[5];
+            eh->ether_dhost[5] = eh->ether_shost[5]+1;
             eh->ether_shost[0] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[0];
             eh->ether_shost[1] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[1];
             eh->ether_shost[2] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[2];
