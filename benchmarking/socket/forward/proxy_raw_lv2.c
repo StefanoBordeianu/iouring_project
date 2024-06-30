@@ -81,6 +81,9 @@ int main(int argc, char *argv[]){
 //      }
 
       char buffer[size];
+      struct ether_header *eh = (struct ether_header *) buffer;
+      struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ether_header));
+      struct udphdr *udph = (struct udphdr *) (buffer + sizeof(struct iphdr) + sizeof(struct ether_header));
       iov.iov_len = size;
       iov.iov_base = buffer;
 
@@ -95,15 +98,35 @@ int main(int argc, char *argv[]){
                   printf("recv error:%ld\n",res);
             }
 
+            if (!start) {
+                  start = 1;
+                  alarm(duration);
+            }
+
+            printf("destination MAC: %x:%x:%x:%x:%x:%x\n",
+                   eh->ether_dhost[0],
+                   eh->ether_dhost[1],
+                   eh->ether_dhost[2],
+                   eh->ether_dhost[3],
+                   eh->ether_dhost[4],
+                   eh->ether_dhost[5]);
+            printf("source MAC: %x:%x:%x:%x:%x:%x\n",
+                   eh->ether_shost[0],
+                   eh->ether_shost[1],
+                   eh->ether_shost[2],
+                   eh->ether_shost[3],
+                   eh->ether_shost[4],
+                   eh->ether_shost[5]);
+
             recv_add.sll_ifindex = if_idx.ifr_ifindex;
             recv_add.sll_protocol = htons(ETH_P_IP);
             recv_add.sll_halen = ETH_ALEN;
-            recv_add.sll_addr[0] = 0x9c;
-            recv_add.sll_addr[1] = 0xdc;
-            recv_add.sll_addr[2] = 0x71;
-            recv_add.sll_addr[3] = 0x5d;
-            recv_add.sll_addr[4] = 0x31;
-            recv_add.sll_addr[5] = 0xd1;
+            recv_add.sll_addr[5] = 0x9c;
+            recv_add.sll_addr[4] = 0xdc;
+            recv_add.sll_addr[3] = 0x71;
+            recv_add.sll_addr[2] = 0x5d;
+            recv_add.sll_addr[1] = 0x31;
+            recv_add.sll_addr[0] = 0xd1;
 
 
 
