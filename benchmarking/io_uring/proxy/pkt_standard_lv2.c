@@ -13,7 +13,6 @@
 #include <net/ethernet.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
-#include <zlib.h>
 
 
 #define EVENT_TYPE_SEND 1
