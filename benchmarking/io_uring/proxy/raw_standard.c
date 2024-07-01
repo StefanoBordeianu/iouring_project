@@ -196,12 +196,18 @@ void add_starting_receive(int socketfd,int index){
       iov = malloc(sizeof(struct iovec));
       msghdr = malloc(sizeof(struct msghdr));
       src_add = malloc(sizeof(struct sockaddr_in));
+      memset(req,0,sizeof(*req));
+      memset(iov,0,sizeof(*iov));
+      memset(msghdr,0,sizeof(*msghdr));
+      memset(src_add,0,sizeof(*src_add));
+
       sqe = io_uring_get_sqe(ring);
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
       iov->iov_len = size;
       iov->iov_base = malloc(size);
+      memset(iov->iov_base,0,size);
       
       msghdr->msg_name = src_add;
       msghdr->msg_namelen = sizeof(struct sockaddr_in);
@@ -226,6 +232,9 @@ void add_receive(struct request* req){
       sqe = io_uring_get_sqe(ring);
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
+
+      memset(req->msg->msg_iov->iov_base,0,size);
+      memset(req->msg->msg_name,0,sizeof(struct sockaddr_in));
 
       req->type = EVENT_TYPE_RECV;
 
