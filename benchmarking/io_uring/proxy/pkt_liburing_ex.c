@@ -315,7 +315,6 @@ static int process_cqe_recv(struct ctx *ctx, struct io_uring_cqe *cqe,
       struct ether_header *eh = (struct ether_header *) buffer;
       struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ether_header));
       struct udphdr *udph = (struct udphdr *) (buffer + sizeof(struct iphdr) + sizeof(struct ether_header));
-      unsigned long crc = crc32(0, Z_NULL, 0);
 
       eh->ether_dhost[0] = eh->ether_shost[0];
       eh->ether_dhost[1] = eh->ether_shost[1];
