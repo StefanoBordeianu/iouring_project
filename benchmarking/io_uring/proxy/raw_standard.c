@@ -155,7 +155,7 @@ void handle_buffer(char* buffer,struct sockaddr_in* res){
       iphdr->saddr = iphdr->daddr;
       iphdr->daddr = res->sin_addr.s_addr;
 
-      res->sin_port = 2021;
+      res->sin_port = 0;
       res->sin_family = AF_INET;
 
 }
