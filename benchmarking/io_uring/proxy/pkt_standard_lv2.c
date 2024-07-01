@@ -13,6 +13,7 @@
 #include <net/ethernet.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <zlib.h>
 
 
 #define EVENT_TYPE_SEND 1
@@ -161,10 +162,30 @@ int create_socket(){
       return socketfd;
 }
 
+//I have no idea of how this works
+unsigned int crc32b(unsigned char *message) {
+      int i, j;
+      unsigned int byte, crc, mask;
+
+      i = 0;
+      crc = 0xFFFFFFFF;
+      while (message[i] != 0) {
+            byte = message[i];            // Get next byte.
+            crc = crc ^ byte;
+            for (j = 7; j >= 0; j--) {    // Do eight times.
+                  mask = -(crc & 1);
+                  crc = (crc >> 1) ^ (0xEDB88320 & mask);
+            }
+            i = i + 1;
+      }
+      return ~crc;
+}
+
 void handle_buffer(char* buffer, struct sockaddr_ll* addr){
       struct ether_header *eh = (struct ether_header *) buffer;
       struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ether_header));
       struct udphdr *udph = (struct udphdr *) (buffer + sizeof(struct iphdr) + sizeof(struct ether_header));
+      unsigned long crc = crc32(0, Z_NULL, 0);
 
       eh->ether_dhost[0] = eh->ether_shost[0];
       eh->ether_dhost[1] = eh->ether_shost[1];
@@ -188,6 +209,14 @@ void handle_buffer(char* buffer, struct sockaddr_ll* addr){
       addr->sll_addr[3] = eh->ether_dhost[3];
       addr->sll_addr[4] = eh->ether_dhost[4];
       addr->sll_addr[5] = eh->ether_dhost[5];
+
+
+      //TODO:implement calculation of FCS
+//      for (int j = 8; j < size + 4; j += 8) {
+//            crc = crc32(0, Z_NULL, 0);
+//            crc = crc32(crc, (const unsigned char *)buffer, j);
+//            printf("FCS(%02d): %08lX\n", j / 8, crc);
+//      }
 
 }
 

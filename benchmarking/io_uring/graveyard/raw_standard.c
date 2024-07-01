@@ -194,7 +194,7 @@ void add_starting_receive(int socketfd,int index){
       iov = malloc(sizeof(struct iovec));
       msghdr = malloc(sizeof(struct msghdr));
       src_add = malloc(sizeof(struct sockaddr_in));
-      memset(req,0,sizeof(*req));
+      //memset(req,0,sizeof(*req));
       memset(iov,0,sizeof(*iov));
       memset(msghdr,0,sizeof(*msghdr));
       memset(src_add,0,sizeof(*src_add));
