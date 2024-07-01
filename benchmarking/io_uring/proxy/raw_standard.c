@@ -168,7 +168,7 @@ void add_send(struct request* req){
       socketfd = req->socket;
       msghdr = req->msg;
       handle_buffer(msghdr->msg_iov->iov_base,msghdr->msg_name);
-      free(msghdr->msg_name);
+      //free(msghdr->msg_name);
 
       req->type = EVENT_TYPE_SEND;
       sqe = io_uring_get_sqe(ring);
