@@ -38,7 +38,7 @@ struct sockaddr_in handle_buffer(char* buffer,int size){
 int main(int argc, char *argv[]){
       int sockfd;
       struct sockaddr_ll recv_add, send_adr;
-      int port = 2020;
+      int verbose = 0;
       int size = 64;
       struct sockaddr_ll bind_ll;
       struct ifreq if_idx;
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]){
       memset(&bind_ll,0,sizeof(bind_ll));
 
       if(argc>1)
-            port = atoi(argv[1]);
+            verbose = atoi(argv[1]);
       if(argc>2)
             duration = atoi(argv[2]);
       if(argc>3)
@@ -112,20 +112,22 @@ int main(int argc, char *argv[]){
                   alarm(duration);
             }
 
-            printf("destination MAC: %x:%x:%x:%x:%x:%x\n",
-                   eh->ether_dhost[0],
-                   eh->ether_dhost[1],
-                   eh->ether_dhost[2],
-                   eh->ether_dhost[3],
-                   eh->ether_dhost[4],
-                   eh->ether_dhost[5]);
-            printf("source MAC: %x:%x:%x:%x:%x:%x\n",
-                   eh->ether_shost[0],
-                   eh->ether_shost[1],
-                   eh->ether_shost[2],
-                   eh->ether_shost[3],
-                   eh->ether_shost[4],
-                   eh->ether_shost[5]);
+            if(verbose) {
+                  printf("destination MAC: %x:%x:%x:%x:%x:%x\n",
+                         eh->ether_dhost[0],
+                         eh->ether_dhost[1],
+                         eh->ether_dhost[2],
+                         eh->ether_dhost[3],
+                         eh->ether_dhost[4],
+                         eh->ether_dhost[5]);
+                  printf("source MAC: %x:%x:%x:%x:%x:%x\n",
+                         eh->ether_shost[0],
+                         eh->ether_shost[1],
+                         eh->ether_shost[2],
+                         eh->ether_shost[3],
+                         eh->ether_shost[4],
+                         eh->ether_shost[5]);
+            }
 
             eh->ether_dhost[0] = eh->ether_shost[0];
             eh->ether_dhost[1] = eh->ether_shost[1];
@@ -145,12 +147,12 @@ int main(int argc, char *argv[]){
             recv_add.sll_ifindex = if_idx.ifr_ifindex;
             recv_add.sll_protocol = htons(ETH_P_IP);
             recv_add.sll_halen = ETH_ALEN;
-            recv_add.sll_addr[0] = 0x9c;
-            recv_add.sll_addr[1] = 0xdc;
-            recv_add.sll_addr[2] = 0x71;
-            recv_add.sll_addr[3] = 0x5d;
-            recv_add.sll_addr[4] = 0x31;
-            recv_add.sll_addr[5] = 0xd1;
+            recv_add.sll_addr[0] = eh->ether_dhost[0];
+            recv_add.sll_addr[1] = eh->ether_dhost[1];
+            recv_add.sll_addr[2] = eh->ether_dhost[2];
+            recv_add.sll_addr[3] = eh->ether_dhost[3];
+            recv_add.sll_addr[4] = eh->ether_dhost[4];
+            recv_add.sll_addr[5] = eh->ether_dhost[5];
 
 
 
