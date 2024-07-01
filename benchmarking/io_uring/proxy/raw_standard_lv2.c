@@ -9,8 +9,11 @@
 #include <signal.h>
 #include <unistd.h>
 #include <linux/ip.h>
-#include<linux/if_packet.h>
-#include<net/ethernet.h>
+#include <linux/if_packet.h>
+#include <net/ethernet.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+
 
 #define EVENT_TYPE_SEND 1
 #define EVENT_TYPE_RECV 2
@@ -37,6 +40,8 @@ long packets_received = 0;
 long packets_sent = 0;
 long total_events = 0;
 int fixed_files[10];
+struct ifreq if_idx;
+struct ifreq if_mac;
 
 struct request{
     struct msghdr* msg;
@@ -122,57 +127,91 @@ int create_socket(){
       int socketfd;
       int opt = 1;
       struct sockaddr_in add;
+      struct sockaddr_ll bind_ll;
+      long res;
+      char interface[] = "ens1f1np1";
 
-      socketfd = socket(AF_PACKET,SOCK_RAW,htons(ETH_P_ALL));
-      if(socketfd < 0){
-            printf("SERVER: Error while creating the socket\n");
-            exit(-1);
-      }
-      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-                    &opt,sizeof (opt))){
-            printf("SERVER: Socket options error\n");
-            exit(-1);
+      if((socketfd = socket(AF_PACKET,SOCK_RAW,htons(ETH_P_IP)))<0){
+            perror("socket");
+            return 0;
       }
 
-      add.sin_port = htons(port);
-      add.sin_family = AF_INET;
-      add.sin_addr.s_addr = INADDR_ANY;
-      if(bind(socketfd,(struct sockaddr *)&add, sizeof(add)) < 0){
-            perror("bind()");
-            exit(-1);
+
+      memset(&if_idx, 0, sizeof(struct ifreq));
+      strncpy(if_idx.ifr_name, interface ,9);
+      if (ioctl(socketfd, SIOCGIFINDEX, &if_idx) < 0)
+            perror("SIOCGIFINDEX");
+      memset(&if_mac, 0, sizeof(struct ifreq));
+
+      strncpy(if_mac.ifr_name, interface, 9);
+      if (ioctl(socketfd, SIOCGIFHWADDR, &if_mac) < 0)
+            perror("SIOCGIFHWADDR");
+
+
+      bind_ll.sll_family = AF_PACKET;
+      bind_ll.sll_protocol = htons(ETH_P_IP);
+      bind_ll.sll_ifindex = if_idx.ifr_ifindex;
+
+      printf("INDEX OF INTERFACE %d\n",if_idx.ifr_ifindex);
+
+      if((res = bind(socketfd, (struct sockaddr*)&bind_ll, sizeof(struct sockaddr_ll)))<0){
+            printf("bind error:%ld\n",res);
       }
+
       return socketfd;
 }
 
-struct sockaddr_in handle_buffer(char* buffer){
-      struct sockaddr_in res;
-      memset(&res,0,sizeof(res));
+void handle_buffer(char* buffer, struct sockaddr_ll* addr){
+      struct ether_header *eh = (struct ether_header *) buffer;
+      struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ether_header));
+      struct udphdr *udph = (struct udphdr *) (buffer + sizeof(struct iphdr) + sizeof(struct ether_header));
 
-      struct iphdr* iphdr = (struct iphdr*) buffer;
-      res.sin_addr.s_addr = iphdr->saddr;
-      iphdr->saddr = iphdr->daddr;
-      iphdr->daddr = res.sin_addr.s_addr;
+      eh->ether_dhost[0] = eh->ether_shost[0];
+      eh->ether_dhost[1] = eh->ether_shost[1];
+      eh->ether_dhost[2] = eh->ether_shost[2];
+      eh->ether_dhost[3] = eh->ether_shost[3];
+      eh->ether_dhost[4] = eh->ether_shost[4];
+      eh->ether_dhost[5] = eh->ether_shost[5];
+      eh->ether_shost[0] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[0];
+      eh->ether_shost[1] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[1];
+      eh->ether_shost[2] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[2];
+      eh->ether_shost[3] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[3];
+      eh->ether_shost[4] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[4];
+      eh->ether_shost[5] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[5];
 
-      return res;
+      addr->sll_ifindex = if_idx.ifr_ifindex;
+      addr->sll_protocol = htons(ETH_P_IP);
+      addr->sll_halen = ETH_ALEN;
+      addr->sll_addr[0] = eh->ether_dhost[0];
+      addr->sll_addr[1] = eh->ether_dhost[1];
+      addr->sll_addr[2] = eh->ether_dhost[2];
+      addr->sll_addr[3] = eh->ether_dhost[3];
+      addr->sll_addr[4] = eh->ether_dhost[4];
+      addr->sll_addr[5] = eh->ether_dhost[5];
+
 }
 
 void add_send(struct request* req){
       struct msghdr* msghdr;
       struct io_uring_sqe* sqe;
-      struct sockaddr_in saddr;
+      struct sockaddr_ll* addr;
       int socketfd;
 
       socketfd = req->socket;
       msghdr = req->msg;
-      saddr = handle_buffer(msghdr->msg_iov->iov_base);
-      *((struct sockaddr_in*)msghdr->msg_name) = saddr;
+      handle_buffer(msghdr->msg_iov->iov_base,msghdr->msg_name);
+      addr = (struct sockaddr_ll*)msghdr->msg_name;
 
       req->type = EVENT_TYPE_SEND;
       sqe = io_uring_get_sqe(ring);
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      io_uring_prep_sendmsg(sqe,socketfd,msghdr,0);
+      addr->sll_ifindex = if_idx.ifr_ifindex;
+      addr->sll_protocol = htons(ETH_P_IP);
+      addr->sll_halen = ETH_ALEN;
+
+      io_uring_prep_sendto(sqe,socketfd,msghdr->msg_iov->iov_base, size,0,(struct sockaddr*)addr,sizeof(struct sockaddr_ll));
       io_uring_sqe_set_data(sqe, req);
       if(fixed_file)
             io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
@@ -182,7 +221,7 @@ void add_send(struct request* req){
 
 void add_starting_receive(int socketfd){
       struct msghdr* msghdr;
-      struct sockaddr_in* src_add;
+      struct sockaddr_ll* addr;
       struct iovec* iov;
       struct request* req;
       struct io_uring_sqe* sqe;
@@ -190,16 +229,22 @@ void add_starting_receive(int socketfd){
       req = malloc(sizeof(struct request));
       iov = malloc(sizeof(struct iovec));
       msghdr = malloc(sizeof(struct msghdr));
-      src_add = malloc(sizeof(struct sockaddr_in));
+      addr = malloc(sizeof(struct sockaddr_ll));
+      memset(req,0,sizeof(*req));
+      memset(iov,0,sizeof(*iov));
+      memset(msghdr,0,sizeof(*msghdr));
+      memset(addr,0,sizeof(*addr));
+
       sqe = io_uring_get_sqe(ring);
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
       iov->iov_len = size;
       iov->iov_base = malloc(size);
+      memset(iov->iov_base,0,size);
       
-      msghdr->msg_name = src_add;
-      msghdr->msg_namelen = sizeof(struct sockaddr_in);
+      msghdr->msg_name = addr;
+      msghdr->msg_namelen = sizeof(struct sockaddr_ll);
       msghdr->msg_iov = iov;
       msghdr->msg_iovlen = 1;
 
@@ -221,6 +266,9 @@ void add_receive(struct request* req){
       sqe = io_uring_get_sqe(ring);
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
+
+      memset(req->msg->msg_iov->iov_base,0,size);
+      memset(req->msg->msg_name,0,sizeof(struct sockaddr_ll));
 
       req->type = EVENT_TYPE_RECV;
 
