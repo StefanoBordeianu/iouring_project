@@ -149,29 +149,23 @@ int create_socket(){
       return socketfd;
 }
 
-struct sockaddr_in* handle_buffer(char* buffer){
-      struct sockaddr_in* res = malloc(sizeof(struct sockaddr_in));
-      memset(res,0,sizeof(*res));
-
+void handle_buffer(char* buffer,struct sockaddr_in* res){
       struct iphdr* iphdr = (struct iphdr*) buffer;
       res->sin_addr.s_addr = iphdr->saddr;
       iphdr->saddr = iphdr->daddr;
       iphdr->daddr = res->sin_addr.s_addr;
 
-      return res;
 }
 
 void add_send(struct request* req){
       struct msghdr* msghdr;
       struct io_uring_sqe* sqe;
-      struct sockaddr_in* saddr;
       int socketfd;
 
       socketfd = req->socket;
       msghdr = req->msg;
-      saddr = handle_buffer(msghdr->msg_iov->iov_base);
+      handle_buffer(msghdr->msg_iov->iov_base,msghdr->msg_name);
       free(msghdr->msg_name);
-      msghdr->msg_name = saddr;
 
       req->type = EVENT_TYPE_SEND;
       sqe = io_uring_get_sqe(ring);
