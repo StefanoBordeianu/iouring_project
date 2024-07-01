@@ -175,7 +175,7 @@ void add_send(struct request* req){
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      io_uring_prep_sendmsg(sqe,socketfd,msghdr,0);
+      io_uring_prep_sendto(sqe,socketfd,msghdr->msg_iov->iov_base,size,0,msghdr->msg_name,sizeof(struct sockaddr_in));
       io_uring_sqe_set_data(sqe, req);
       if(fixed_file)
             io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
