@@ -82,6 +82,9 @@ int main(int argc, char *argv[]){
       bind_ll.sll_family = AF_PACKET;
       bind_ll.sll_protocol = htons(ETH_P_IP);
       bind_ll.sll_ifindex = if_idx.ifr_ifindex;
+
+      printf("INDEX OF INTERFACE %d\n",if_idx.ifr_ifindex);
+
       if((res = bind(sockfd, (struct sockaddr*)&bind_ll, sizeof(struct sockaddr_ll)))<0){
             printf("bind error:%ld\n",res);
       }
