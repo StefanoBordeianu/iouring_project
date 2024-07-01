@@ -47,6 +47,7 @@ int main(int argc, char *argv[]){
       struct iovec iov;
       int op = 1;
       char interface[] = "ens1f1np1";
+      long res;
 
       signal(SIGALRM,sig_handler);
       memset(&recv_add,0,sizeof(recv_add));
@@ -81,6 +82,9 @@ int main(int argc, char *argv[]){
       bind_ll.sll_family = AF_PACKET;
       bind_ll.sll_protocol = htons(ETH_P_IP);
       bind_ll.sll_ifindex = if_idx.ifr_ifindex;
+      if((res = bind(sockfd, (struct sockaddr*)&bind_ll, sizeof(struct sockaddr_ll)))<0){
+            printf("bind error:%ld\n",res);
+      }
 
       char buffer[size];
       struct ether_header *eh = (struct ether_header *) buffer;
@@ -95,7 +99,7 @@ int main(int argc, char *argv[]){
       msghdr.msg_iovlen = 1;
 
       while(1){
-            long res;
+
             if((res = recvmsg(sockfd,&msghdr,0))<0){
                   printf("recv error:%ld\n",res);
             }
