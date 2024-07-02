@@ -57,7 +57,7 @@ int main(int argc, char *argv[]){
             return 0;
       }
 
-      char buffer[1550];
+      char buffer[1500];
       socklen_t len = sizeof(send_adr);
       int n;
       struct iovec send_iovec[1];
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]){
       memset(&send_msg,0, sizeof(send_msg));
 
       while(1) {
-            n = recvfrom(sockfd, buffer, 1550, 0, (struct sockaddr *) &send_adr, &len);
+            n = recvfrom(sockfd, buffer, 1500, 0, (struct sockaddr *) &send_adr, &len);
             if(n<0){
                   perror("recv\n");
                   return -1;
