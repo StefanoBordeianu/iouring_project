@@ -177,8 +177,8 @@ void add_starting_receive(int socketfd){
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      iov->iov_len = size;
-      iov->iov_base = malloc(size);
+      iov->iov_len = 1500;
+      iov->iov_base = malloc(1500);
       
       msghdr->msg_name = src_add;
       msghdr->msg_namelen = sizeof(struct sockaddr_in);
@@ -205,6 +205,7 @@ void add_receive(struct request* req){
             printf("ERROR while getting the sqe\n");
 
       req->type = EVENT_TYPE_RECV;
+      req->msg->msg_iov->iov_len = 1500;
 
       io_uring_prep_recvmsg(sqe,req->socket, req->msg,0);
       io_uring_sqe_set_data(sqe, req);
@@ -238,6 +239,8 @@ void handle_recv(struct io_uring_cqe* cqe){
       }
 
       packets_received++;
+
+      req->msg->msg_iov->iov_len = cqe->res;
       add_send(req);
 }
 

@@ -218,7 +218,7 @@ void handle_buffer(char* buffer, struct sockaddr_ll* addr){
 
 }
 
-void add_send(struct request* req){
+void add_send(struct request* req, int lenght_to_send){
       struct msghdr* msghdr;
       struct io_uring_sqe* sqe;
       struct sockaddr_ll* addr;
@@ -238,7 +238,7 @@ void add_send(struct request* req){
       addr->sll_protocol = htons(ETH_P_IP);
       addr->sll_halen = ETH_ALEN;
 
-      io_uring_prep_sendto(sqe,socketfd,msghdr->msg_iov->iov_base, size,0,(struct sockaddr*)addr,sizeof(struct sockaddr_ll));
+      io_uring_prep_sendto(sqe,socketfd,msghdr->msg_iov->iov_base, lenght_to_send,0,(struct sockaddr*)addr,sizeof(struct sockaddr_ll));
       io_uring_sqe_set_data(sqe, req);
       if(fixed_file)
             io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
@@ -266,9 +266,9 @@ void add_starting_receive(int socketfd){
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      iov->iov_len = size;
-      iov->iov_base = malloc(size);
-      memset(iov->iov_base,0,size);
+      iov->iov_len = 1500;
+      iov->iov_base = malloc(1500);
+      memset(iov->iov_base,0,1500);
       
       msghdr->msg_name = addr;
       msghdr->msg_namelen = sizeof(struct sockaddr_ll);
@@ -294,8 +294,9 @@ void add_receive(struct request* req){
       if(sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      memset(req->msg->msg_iov->iov_base,0,size);
+      memset(req->msg->msg_iov->iov_base,0,1500);
       memset(req->msg->msg_name,0,sizeof(struct sockaddr_ll));
+      req->msg->msg_iov->iov_len = 1500;
 
       req->type = EVENT_TYPE_RECV;
 
@@ -314,6 +315,7 @@ void handle_send(struct io_uring_cqe* cqe){
             printf("error on send,  number:%d\n",cqe->res);
       }
 
+      req->msg->msg_iov->iov_len = cqe->res;
       packets_sent++;
       add_receive(req);
 }
@@ -331,7 +333,7 @@ void handle_recv(struct io_uring_cqe* cqe){
       }
 
       packets_received++;
-      add_send(req);
+      add_send(req, cqe->res);
 }
 
 void start_loop(int socketfd){
