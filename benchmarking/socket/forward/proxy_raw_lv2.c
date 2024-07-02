@@ -89,11 +89,11 @@ int main(int argc, char *argv[]){
             printf("bind error:%ld\n",res);
       }
 
-      char buffer[size];
+      char buffer[1500];
       struct ether_header *eh = (struct ether_header *) buffer;
       struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ether_header));
       struct udphdr *udph = (struct udphdr *) (buffer + sizeof(struct iphdr) + sizeof(struct ether_header));
-      iov.iov_len = size;
+      iov.iov_len = 1500;
       iov.iov_base = buffer;
 
       msghdr.msg_name = &recv_add;
@@ -155,8 +155,8 @@ int main(int argc, char *argv[]){
             recv_add.sll_addr[5] = eh->ether_dhost[5];
 
 
-
-            if((res = sendto(sockfd, msghdr.msg_iov->iov_base , size,0, (struct sockaddr*)&recv_add, sizeof(struct sockaddr_ll)))<0){
+            int tosend = (int)res;
+            if((res = sendto(sockfd, msghdr.msg_iov->iov_base , tosend,0, (struct sockaddr*)&recv_add, sizeof(struct sockaddr_ll)))<0){
                   printf("send error:%ld\n",res);
             }
       }
