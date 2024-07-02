@@ -72,7 +72,7 @@ int parse_arguments(int argc, char* argv[]){
                         duration = atoi(optarg);
                         break;
                   case 's':
-                        size = atoi(optarg);
+                        size = atoi(optarg)-56;
                         break;
                   case 'T':
                         test = 1;
