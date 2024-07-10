@@ -34,11 +34,34 @@ struct sockaddr_in handle_buffer(char* buffer,int size){
       return res;
 }
 
+unsigned short compute_checksum(unsigned short *addr, unsigned int count) {
+      register unsigned long sum = 0;
+      while (count > 1) {
+            sum += * addr++;
+            count -= 2;
+      }
+      //if any bytes left, pad the bytes and add
+      if(count > 0) {
+            sum += ((*addr)&htons(0xFF00));
+      }
+      //Fold sum to 16 bits: add carrier to result
+      while (sum>>16) {
+            sum = (sum & 0xffff) + (sum >> 16);
+      }
+      //one's complement
+      sum = ~sum;
+      return ((unsigned short)sum);
+}
+
+void compute_ip_checksum(struct iphdr* iphdrp){
+      iphdrp->check = 0;
+      iphdrp->check = compute_checksum((unsigned short*)iphdrp, iphdrp->ihl<<2);
+}
 
 int main(int argc, char *argv[]){
       int sockfd;
       struct sockaddr_ll recv_add, send_adr;
-      int verbose = 0;
+      int compute = 0;
       int size = 64;
       struct sockaddr_ll bind_ll;
       struct ifreq if_idx;
@@ -55,7 +78,7 @@ int main(int argc, char *argv[]){
       memset(&bind_ll,0,sizeof(bind_ll));
 
       if(argc>1)
-            verbose = atoi(argv[1]);
+            compute = atoi(argv[1]);
       if(argc>2)
             duration = atoi(argv[2]);
       if(argc>3)
@@ -112,47 +135,37 @@ int main(int argc, char *argv[]){
                   alarm(duration);
             }
 
-            if(verbose) {
-                  printf("destination MAC: %x:%x:%x:%x:%x:%x\n",
-                         eh->ether_dhost[0],
-                         eh->ether_dhost[1],
-                         eh->ether_dhost[2],
-                         eh->ether_dhost[3],
-                         eh->ether_dhost[4],
-                         eh->ether_dhost[5]);
-                  printf("source MAC: %x:%x:%x:%x:%x:%x\n",
-                         eh->ether_shost[0],
-                         eh->ether_shost[1],
-                         eh->ether_shost[2],
-                         eh->ether_shost[3],
-                         eh->ether_shost[4],
-                         eh->ether_shost[5]);
+            if(compute){
+                  eh->ether_dhost[0] = eh->ether_shost[0];
+                  eh->ether_dhost[1] = eh->ether_shost[1];
+                  eh->ether_dhost[2] = eh->ether_shost[2];
+                  eh->ether_dhost[3] = eh->ether_shost[3];
+                  eh->ether_dhost[4] = eh->ether_shost[4];
+                  eh->ether_dhost[5] = eh->ether_shost[5];
+                  eh->ether_shost[0] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[0];
+                  eh->ether_shost[1] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[1];
+                  eh->ether_shost[2] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[2];
+                  eh->ether_shost[3] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[3];
+                  eh->ether_shost[4] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[4];
+                  eh->ether_shost[5] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[5];
+
+
+
+                  recv_add.sll_ifindex = if_idx.ifr_ifindex;
+                  recv_add.sll_protocol = htons(ETH_P_IP);
+                  recv_add.sll_halen = ETH_ALEN;
+                  recv_add.sll_addr[0] = eh->ether_dhost[0];
+                  recv_add.sll_addr[1] = eh->ether_dhost[1];
+                  recv_add.sll_addr[2] = eh->ether_dhost[2];
+                  recv_add.sll_addr[3] = eh->ether_dhost[3];
+                  recv_add.sll_addr[4] = eh->ether_dhost[4];
+                  recv_add.sll_addr[5] = eh->ether_dhost[5];
+                  
+                  iph->ttl = iph->ttl - 1;
+                  compute_ip_checksum(iph);
+
+
             }
-
-            eh->ether_dhost[0] = eh->ether_shost[0];
-            eh->ether_dhost[1] = eh->ether_shost[1];
-            eh->ether_dhost[2] = eh->ether_shost[2];
-            eh->ether_dhost[3] = eh->ether_shost[3];
-            eh->ether_dhost[4] = eh->ether_shost[4];
-            eh->ether_dhost[5] = eh->ether_shost[5];
-            eh->ether_shost[0] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[0];
-            eh->ether_shost[1] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[1];
-            eh->ether_shost[2] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[2];
-            eh->ether_shost[3] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[3];
-            eh->ether_shost[4] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[4];
-            eh->ether_shost[5] = ((uint8_t *)&if_mac.ifr_hwaddr.sa_data)[5];
-
-
-
-            recv_add.sll_ifindex = if_idx.ifr_ifindex;
-            recv_add.sll_protocol = htons(ETH_P_IP);
-            recv_add.sll_halen = ETH_ALEN;
-            recv_add.sll_addr[0] = eh->ether_dhost[0];
-            recv_add.sll_addr[1] = eh->ether_dhost[1];
-            recv_add.sll_addr[2] = eh->ether_dhost[2];
-            recv_add.sll_addr[3] = eh->ether_dhost[3];
-            recv_add.sll_addr[4] = eh->ether_dhost[4];
-            recv_add.sll_addr[5] = eh->ether_dhost[5];
 
 
             int tosend = (int)res;

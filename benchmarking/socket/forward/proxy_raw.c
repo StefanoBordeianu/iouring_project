@@ -29,11 +29,34 @@ struct sockaddr_in handle_buffer(char* buffer,int size){
       return res;
 }
 
+unsigned short compute_checksum(unsigned short *addr, unsigned int count) {
+      register unsigned long sum = 0;
+      while (count > 1) {
+            sum += * addr++;
+            count -= 2;
+      }
+      //if any bytes left, pad the bytes and add
+      if(count > 0) {
+            sum += ((*addr)&htons(0xFF00));
+      }
+      //Fold sum to 16 bits: add carrier to result
+      while (sum>>16) {
+            sum = (sum & 0xffff) + (sum >> 16);
+      }
+      //one's complement
+      sum = ~sum;
+      return ((unsigned short)sum);
+}
+
+void compute_ip_checksum(struct iphdr* iphdrp){
+      iphdrp->check = 0;
+      iphdrp->check = compute_checksum((unsigned short*)iphdrp, iphdrp->ihl<<2);
+}
 
 int main(int argc, char *argv[]){
       int sockfd;
       struct sockaddr_in listen_add, send_adr;
-      int port = 2020;
+      int compute = 2020;
       int size = 64;
       int op = 1;
       char interface[] = "ens1f1np1";
