@@ -33,6 +33,7 @@ int fixed_file = 0;
 int sq_poll = 0;
 int napi = 0;
 int napi_timeout = 0;
+int compute_check = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -67,7 +68,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:c")) != -1) {
             switch (opt) {
                   case 'p':
                         port = atoi(optarg);
@@ -80,6 +81,9 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 's':
                         size = atoi(optarg);
+                        break;
+                  case 'c':
+                        compute_check = 1;
                         break;
                   case 'T':
                         test = 1;
@@ -180,6 +184,31 @@ unsigned int crc32b(unsigned char *message) {
       return ~crc;
 }
 
+/* Compute checksum for count bytes starting at addr, using one's complement of one's complement sum*/
+unsigned short compute_checksum(unsigned short *addr, unsigned int count) {
+      register unsigned long sum = 0;
+      while (count > 1) {
+            sum += * addr++;
+            count -= 2;
+      }
+      //if any bytes left, pad the bytes and add
+      if(count > 0) {
+            sum += ((*addr)&htons(0xFF00));
+      }
+      //Fold sum to 16 bits: add carrier to result
+      while (sum>>16) {
+            sum = (sum & 0xffff) + (sum >> 16);
+      }
+      //one's complement
+      sum = ~sum;
+      return ((unsigned short)sum);
+}
+
+void compute_ip_checksum(struct iphdr* iphdrp){
+      iphdrp->check = 0;
+      iphdrp->check = compute_checksum((unsigned short*)iphdrp, iphdrp->ihl<<2);
+}
+
 void handle_buffer(char* buffer, struct sockaddr_ll* addr){
       struct ether_header *eh = (struct ether_header *) buffer;
       struct iphdr *iph = (struct iphdr *) (buffer + sizeof(struct ether_header));
@@ -208,14 +237,10 @@ void handle_buffer(char* buffer, struct sockaddr_ll* addr){
       addr->sll_addr[4] = eh->ether_dhost[4];
       addr->sll_addr[5] = eh->ether_dhost[5];
 
-
-      //TODO:implement calculation of FCS
-//      for (int j = 8; j < size + 4; j += 8) {
-//            crc = crc32(0, Z_NULL, 0);
-//            crc = crc32(crc, (const unsigned char *)buffer, j);
-//            printf("FCS(%02d): %08lX\n", j / 8, crc);
-//      }
-
+      if(compute_check) {
+            iph->ttl = iph->ttl - 1;
+            compute_ip_checksum(iph);
+      }
 }
 
 void add_send(struct request* req, int lenght_to_send){
