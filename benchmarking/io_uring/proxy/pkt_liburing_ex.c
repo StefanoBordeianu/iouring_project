@@ -296,10 +296,11 @@ static int process_cqe_recv(struct ctx *ctx, struct io_uring_cqe *cqe,
       if (get_sqe(ctx, &sqe))
             return -1;
 
+      int len_to_send = io_uring_recvmsg_payload_length(o, cqe->res, &ctx->msg);
       ctx->send[idx].iov = (struct iovec) {
               .iov_base = io_uring_recvmsg_payload(o, &ctx->msg),
-              .iov_len =
-              io_uring_recvmsg_payload_length(o, cqe->res, &ctx->msg)
+              .iov_len = len_to_send
+
       };
       ctx->send[idx].msg = (struct msghdr) {
               .msg_namelen = o->namelen,
@@ -339,7 +340,7 @@ static int process_cqe_recv(struct ctx *ctx, struct io_uring_cqe *cqe,
       addr->sll_addr[4] = eh->ether_dhost[4];
       addr->sll_addr[5] = eh->ether_dhost[5];
 
-      io_uring_prep_sendto(sqe,fdidx,buffer,cqe->res,0,(struct sockaddr*)addr,sizeof(struct sockaddr_ll));
+      io_uring_prep_sendto(sqe,fdidx,buffer,len_to_send,0,(struct sockaddr*)addr,sizeof(struct sockaddr_ll));
       io_uring_sqe_set_data64(sqe, idx);
       sqe->flags |= IOSQE_FIXED_FILE;
 
