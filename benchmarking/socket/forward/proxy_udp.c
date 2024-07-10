@@ -85,7 +85,7 @@ int main(int argc, char *argv[]){
             send_msg.msg_iov = send_iovec;
             send_msg.msg_iovlen = 1;
             send_msg.msg_flags = 0;
-            send_msg.msg_control = NULL;
+            send_msg.msg_control = 0;
             send_msg.msg_controllen = 0;
             n = sendmsg(sockfd,&send_msg,0);
 

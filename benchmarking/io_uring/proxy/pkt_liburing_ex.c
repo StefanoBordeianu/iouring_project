@@ -339,7 +339,7 @@ static int process_cqe_recv(struct ctx *ctx, struct io_uring_cqe *cqe,
       addr->sll_addr[4] = eh->ether_dhost[4];
       addr->sll_addr[5] = eh->ether_dhost[5];
 
-      io_uring_prep_sendto(sqe,fdidx,buffer,size,0,(struct sockaddr*)addr,sizeof(struct sockaddr_ll));
+      io_uring_prep_sendto(sqe,fdidx,buffer,cqe->res,0,(struct sockaddr*)addr,sizeof(struct sockaddr_ll));
       io_uring_sqe_set_data64(sqe, idx);
       sqe->flags |= IOSQE_FIXED_FILE;
 
