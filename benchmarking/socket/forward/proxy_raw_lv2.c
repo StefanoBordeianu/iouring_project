@@ -160,7 +160,7 @@ int main(int argc, char *argv[]){
                   recv_add.sll_addr[3] = eh->ether_dhost[3];
                   recv_add.sll_addr[4] = eh->ether_dhost[4];
                   recv_add.sll_addr[5] = eh->ether_dhost[5];
-                  
+
                   iph->ttl = iph->ttl - 1;
                   compute_ip_checksum(iph);
 
@@ -172,6 +172,7 @@ int main(int argc, char *argv[]){
             if((res = sendto(sockfd, msghdr.msg_iov->iov_base , tosend,0, (struct sockaddr*)&recv_add, sizeof(struct sockaddr_ll)))<0){
                   printf("send error:%ld\n",res);
             }
+            pkt++;
       }
 
 }
