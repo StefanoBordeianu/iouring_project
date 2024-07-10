@@ -232,7 +232,8 @@ void add_send(struct request* req, int lenght_to_send){
 
       socketfd = req->socket;
       msghdr = req->msg;
-      handle_buffer(msghdr->msg_iov->iov_base,msghdr->msg_name);
+      if(compute_check)
+            handle_buffer(msghdr->msg_iov->iov_base,msghdr->msg_name);
       addr = (struct sockaddr_ll*)msghdr->msg_name;
 
       req->type = EVENT_TYPE_SEND;
