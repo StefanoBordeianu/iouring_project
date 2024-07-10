@@ -35,6 +35,7 @@ int single = 0;
 int napi = 0;
 int napi_timeout = 0;
 int batching = 1;
+int compute_check = 0;
 struct ifreq if_idx;
 struct ifreq if_mac;
 int size = 64;
@@ -242,6 +243,31 @@ static int process_cqe_send(struct ctx *ctx, struct io_uring_cqe *cqe)
       return 0;
 }
 
+/* Compute checksum for count bytes starting at addr, using one's complement of one's complement sum*/
+unsigned short compute_checksum(unsigned short *addr, unsigned int count) {
+      register unsigned long sum = 0;
+      while (count > 1) {
+            sum += * addr++;
+            count -= 2;
+      }
+      //if any bytes left, pad the bytes and add
+      if(count > 0) {
+            sum += ((*addr)&htons(0xFF00));
+      }
+      //Fold sum to 16 bits: add carrier to result
+      while (sum>>16) {
+            sum = (sum & 0xffff) + (sum >> 16);
+      }
+      //one's complement
+      sum = ~sum;
+      return ((unsigned short)sum);
+}
+
+void compute_ip_checksum(struct iphdr* iphdrp){
+      iphdrp->check = 0;
+      iphdrp->check = compute_checksum((unsigned short*)iphdrp, iphdrp->ihl<<2);
+}
+
 static int process_cqe_recv(struct ctx *ctx, struct io_uring_cqe *cqe,
                             int fdidx)
 {
@@ -340,6 +366,11 @@ static int process_cqe_recv(struct ctx *ctx, struct io_uring_cqe *cqe,
       addr->sll_addr[4] = eh->ether_dhost[4];
       addr->sll_addr[5] = eh->ether_dhost[5];
 
+      if(compute_check) {
+            iph->ttl = iph->ttl - 1;
+            compute_ip_checksum(iph);
+      }
+
       io_uring_prep_sendto(sqe,fdidx,buffer,len_to_send,0,(struct sockaddr*)addr,sizeof(struct sockaddr_ll));
       io_uring_sqe_set_data64(sqe, idx);
       sqe->flags |= IOSQE_FIXED_FILE;
@@ -377,7 +408,7 @@ int main(int argc, char *argv[])
       ctx.buf_shift = BUF_SHIFT;
       ctx.duration = 10;
 
-      while ((opt = getopt(argc, argv, "6vp:b:d:CSNn:hB:s:")) != -1) {
+      while ((opt = getopt(argc, argv, "6vcp:b:d:CSNn:hB:s:")) != -1) {
             switch (opt) {
                   case 'C':
                         coop = 1;
@@ -387,6 +418,9 @@ int main(int argc, char *argv[])
                         break;
                   case 'N':
                         napi = 1;
+                        break;
+                  case 'c':
+                        compute_check = 1;
                         break;
                   case 'n':
                         napi_timeout = atoi(optarg);
