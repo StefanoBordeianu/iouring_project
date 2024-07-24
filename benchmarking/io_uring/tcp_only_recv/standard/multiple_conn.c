@@ -60,41 +60,6 @@ void parseArgs(int argc, char* argv[]){
       }
 }
 
-//int openListeningSocket(int port){
-//      struct sockaddr_in srv_addr = { };
-//      int fd, enable, ret, domain;
-//
-//      domain = AF_INET;
-//
-//      fd = socket(domain, SOCK_STREAM, 0);
-//      if (fd == -1) {
-//            perror("socket()");
-//            return -1;
-//      }
-//
-//      enable = 1;
-//      ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
-//      if (ret < 0) {
-//            perror("setsockopt(SO_REUSEADDR)");
-//            return -1;
-//      }
-//
-//      srv_addr.sin_family = AF_INET;
-//      srv_addr.sin_port = htons(port);
-//      srv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-//      ret = bind(fd, (const struct sockaddr *)&srv_addr, sizeof(srv_addr));
-//      if (ret < 0) {
-//            perror("bind()");
-//            return -1;
-//      }
-//
-//      if (listen(fd, 1024) < 0) {
-//            perror("listen()");
-//            return -1;
-//      }
-//
-//      return fd;
-//}
 
 int openListeningSocket(int port){
       int socketfd;
@@ -106,11 +71,11 @@ int openListeningSocket(int port){
             printf("SERVER: Error while creating the socket\n");
             return -1;
       }
-//      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
-//                    &opt,sizeof (opt))){
-//            printf("SERVER: Socket options error\n");
-//            return -1;
-//      }
+      if(setsockopt(socketfd,SOL_SOCKET,SO_REUSEADDR|SO_REUSEPORT,
+                    &opt,sizeof (opt))){
+            printf("SERVER: Socket options error\n");
+            return -1;
+      }
 
       add.sin_port = htons(args.port);
       add.sin_family = AF_INET;
@@ -215,11 +180,11 @@ void startBatchingServer(int sock){
                   }
                   i++;
             }
-            io_uring_submit(&ring);
 
-            total_events += i;
-            if(i)
+            if(i) {
+                  total_events += i;
                   io_uring_cq_advance(&ring, i);
+            }
       }
 
 }
