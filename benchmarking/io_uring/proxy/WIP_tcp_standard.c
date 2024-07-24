@@ -29,6 +29,7 @@ int fixed_file = 0;
 int sq_poll = 0;
 int napi = 0;
 int napi_timeout = 0;
+int sink = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -109,6 +110,9 @@ int parse_arguments(int argc, char* argv[]){
                   case 'n':
                         napi_timeout = atoi(optarg);
                         break;
+                  case 'k':
+                        sink = 1;
+                        break
                   case 'h':
                         print_usage();
                         return -1;
@@ -228,7 +232,10 @@ void handle_recv(struct io_uring_cqe* cqe){
 
       packets_received++;
 
-      add_send(req,cqe->res);
+      if(sink)
+            add_receive(req);
+      else
+            add_send(req,cqe->res);
 }
 
 void arm_accept(int socketfd){
