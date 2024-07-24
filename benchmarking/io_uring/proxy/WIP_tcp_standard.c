@@ -112,7 +112,7 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'k':
                         sink = 1;
-                        break
+                        break;
                   case 'h':
                         print_usage();
                         return -1;
