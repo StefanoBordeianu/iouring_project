@@ -257,6 +257,7 @@ void handle_accept(struct io_uring_cqe* cqe){
             free(req);
       }
 
+      printf("accepted a connection, new socket n %d\n",cqe->res);
       add_starting_receive(res);
 }
 
