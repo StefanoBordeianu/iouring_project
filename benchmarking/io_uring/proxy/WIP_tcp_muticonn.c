@@ -34,6 +34,7 @@ int sink = 0;
 struct io_uring* ring;
 int start = 0;
 long packets_received = 0;
+long bytes_recv = 0;
 long packets_sent = 0;
 long total_events = 0;
 int fixed_files[10];
@@ -230,6 +231,7 @@ void handle_recv(struct io_uring_cqe* cqe){
             printf("error on receive,  number:%d\n",cqe->res);
       }
 
+      bytes_recv += cqe->res;
       packets_received++;
 
       if(sink)
@@ -310,7 +312,8 @@ void start_loop(int socketfd){
 
 void sig_handler(int signum){
       printf("\nReceived: %ld packets of size %d\n",packets_received, size);
-      printf("\nSent: %ld packets of size %d\n",packets_sent, size);
+      if(!sink)
+            printf("\nSent: %ld packets of size %d\n",packets_sent, size);
       printf("\nProcessed: %ld events\n",total_events);
 
       long speed = packets_received/duration;
