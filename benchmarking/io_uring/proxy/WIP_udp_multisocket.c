@@ -194,10 +194,10 @@ void add_starting_receive(int socket_index,int* sockets){
       req->msg = msghdr;
       req->socket_index = socket_index;
 
-      io_uring_sqe_set_data(sqe, req);
+
       if(fixed_file) {
-            io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
             io_uring_prep_recvmsg(sqe, socket_index, msghdr, 0);
+            io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
             req->socket = socket_index;
       }
       else {
@@ -205,6 +205,7 @@ void add_starting_receive(int socket_index,int* sockets){
             req->socket = sockets[socket_index];
       }
 
+      io_uring_sqe_set_data(sqe, req);
       if(async)
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
