@@ -32,8 +32,8 @@ int number_of_sockets = 1;
 
 struct io_uring* ring;
 int start = 0;
-long packets_received = 0;
-long packets_sent = 0;
+long* pkts_recv_per_socket;
+long* pkts_sent_per_socket;
 long total_events = 0;
 int fixed_files[10];
 
@@ -41,6 +41,7 @@ struct request{
     struct msghdr* msg;
     int type;
     int socket;
+    int socket_index;
 };
 
 void print_usage(){
@@ -166,7 +167,7 @@ void add_send(struct request* req){
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
 
-void add_starting_receive(int socketfd){
+void add_starting_receive(int socket_index,int* sockets){
       struct msghdr* msghdr;
       struct sockaddr_in* src_add;
       struct iovec* iov;
@@ -191,12 +192,19 @@ void add_starting_receive(int socketfd){
 
       req->type = EVENT_TYPE_RECV;
       req->msg = msghdr;
-      req->socket = socketfd;
+      req->socket_index = socket_index;
 
-      io_uring_prep_recvmsg(sqe,socketfd, msghdr,0);
       io_uring_sqe_set_data(sqe, req);
-      if(fixed_file)
-            io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
+      if(fixed_file) {
+            io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
+            io_uring_prep_recvmsg(sqe, socket_index, msghdr, 0);
+            req->socket = socket_index;
+      }
+      else {
+            io_uring_prep_recvmsg(sqe, sockets[socket_index], msghdr, 0);
+            req->socket = sockets[socket_index];
+      }
+
       if(async)
             io_uring_sqe_set_flags(sqe,IOSQE_ASYNC);
 }
@@ -226,7 +234,7 @@ void handle_send(struct io_uring_cqe* cqe){
             printf("error on send,  number:%d\n",cqe->res);
       }
 
-      packets_sent++;
+      pkts_sent_per_socket[req->socket_index]++;
       add_receive(req);
 }
 
@@ -242,7 +250,7 @@ void handle_recv(struct io_uring_cqe* cqe){
             printf("error on receive,  number:%d\n",cqe->res);
       }
 
-      packets_received++;
+      pkts_recv_per_socket[req->socket_index]++;
 
       req->msg->msg_iov->iov_len = cqe->res;
       add_send(req);
@@ -255,10 +263,7 @@ void start_loop(int* sockets){
 
       for(int i=0;i<number_of_sockets;i++){
             for (int j = 0; j < initial_count; j++) {
-                  if (fixed_file == 1)
-                        add_starting_receive(i);
-                  else
-                        add_starting_receive(sockets[i]);
+                  add_starting_receive(i,sockets);
             }
       }
 
@@ -293,14 +298,20 @@ void start_loop(int* sockets){
 }
 
 void sig_handler(int signum){
-      printf("\nReceived: %ld packets of size %d\n",packets_received, size);
-      printf("\nSent: %ld packets of size %d\n",packets_sent, size);
-      printf("\nProcessed: %ld events\n",total_events);
+      for(int i=0;i<number_of_sockets;i++){
+            printf("SOCKET index %d\n",i);
+            printf("Received: %ld packets of size %d\n",pkts_recv_per_socket[i], size);
+            printf("Sent: %ld packets of size %d\n",pkts_sent_per_socket[i], size);
+            long speed = pkts_recv_per_socket[i]/duration;
+            printf("Speed: %ld packets/second\n", speed);
 
-      long speed = packets_received/duration;
-      printf("Speed: %ld packets/second\n", speed);
+      }
+
+      printf("\nProcessed: %ld events\n",total_events);
       printf("Now closing\n\n");
       io_uring_queue_exit(ring);
+      free(pkts_recv_per_socket);
+      free(pkts_sent_per_socket);
       free(ring);
       exit(0);
 }
@@ -315,6 +326,9 @@ int main(int argc, char* argv[]){
 
       signal(SIGALRM,sig_handler);
       int sockets[number_of_sockets];
+      pkts_recv_per_socket = malloc(sizeof(long)*number_of_sockets);
+      pkts_sent_per_socket = malloc(sizeof(long)*number_of_sockets);
+
 
       for(int i=0;i<number_of_sockets;i++)
             sockets[i] = create_socket(starting_port+i);
