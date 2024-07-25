@@ -303,7 +303,7 @@ void sig_handler(int signum){
             printf("Received: %ld packets of size %d\n",pkts_recv_per_socket[i], size);
             printf("Sent: %ld packets of size %d\n",pkts_sent_per_socket[i], size);
             long speed = pkts_recv_per_socket[i]/duration;
-            printf("Speed: %ld packets/second\n", speed);
+            printf("Speed: %ld packets/second\n\n", speed);
 
       }
 
