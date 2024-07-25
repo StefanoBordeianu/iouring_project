@@ -351,7 +351,7 @@ int main(int argc, char* argv[]){
       }
 
       if(fixed_file){
-            if(io_uring_register_files(ring,sockets,1)<0){
+            if(io_uring_register_files(ring,sockets,number_of_sockets)<0){
                   printf("Register file error\n");
                   exit(-1);
             }
