@@ -59,7 +59,7 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'K':
                         sink = 1;
-                        break
+                        break;
             }
       }
       return 1;
