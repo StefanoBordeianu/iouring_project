@@ -24,10 +24,21 @@ struct epoll_event* evs;
 long processed_events = 0;
 
 void sig_handler(int signum){
-      printf("\nReceived: %ld packets\n",pkt/duration);
-      printf("\nSent: %ld bytes\n",tot_send);
+      for(int i=0;i<number_of_sockets;i++){
+            printf("SOCKET index %d\n",i);
+            printf("Received: %ld packets\n",pkts_recv_per_socket[i]);
+            printf("Sent: %ld packets\n",pkts_sent_per_socket[i]);
+            long speed = pkts_recv_per_socket[i]/duration;
+            printf("Speed: %ld packets/second\n\n", speed);
 
+      }
+
+      printf("\nProcessed: %ld events\n",processed_events);
       printf("Now closing\n\n");
+      free(pkts_recv_per_socket);
+      free(pkts_sent_per_socket);
+      free(sockets);
+      free(evs);
       exit(0);
 }
 

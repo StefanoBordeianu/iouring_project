@@ -301,8 +301,8 @@ void start_loop(int* sockets){
 void sig_handler(int signum){
       for(int i=0;i<number_of_sockets;i++){
             printf("SOCKET index %d\n",i);
-            printf("Received: %ld packets of size %d\n",pkts_recv_per_socket[i], size);
-            printf("Sent: %ld packets of size %d\n",pkts_sent_per_socket[i], size);
+            printf("Received: %ld packets\n",pkts_recv_per_socket[i]);
+            printf("Sent: %ld packets\n",pkts_sent_per_socket[i]);
             long speed = pkts_recv_per_socket[i]/duration;
             printf("Speed: %ld packets/second\n\n", speed);
 
