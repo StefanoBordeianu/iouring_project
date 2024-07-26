@@ -29,6 +29,7 @@ int sq_poll = 0;
 int napi = 0;
 int napi_timeout = 0;
 int number_of_sockets = 1;
+int sink = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -62,7 +63,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:k:")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:k:K")) != -1) {
             switch (opt) {
                   case 'p':
                         starting_port = atoi(optarg);
@@ -112,6 +113,9 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'k':
                         number_of_sockets = atoi(optarg);
+                        break;
+                  case 'K':
+                        sink = 1;
                         break;
                   case 'h':
                         print_usage();
@@ -254,7 +258,10 @@ void handle_recv(struct io_uring_cqe* cqe){
       pkts_recv_per_socket[req->socket_index]++;
 
       req->msg->msg_iov->iov_len = cqe->res;
-      add_send(req);
+      if(!sink)
+            add_send(req);
+      else
+            add_receive(req);
 }
 
 void start_loop(int* sockets){
