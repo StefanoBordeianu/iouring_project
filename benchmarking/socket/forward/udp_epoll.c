@@ -149,6 +149,11 @@ int main(int argc, char *argv[]) {
                         perror("recv\n");
                         exit(1);
                   }
+
+                  if(!start){
+                        start = 1;
+                        alarm(duration);
+                  }
                   pkts_recv_per_socket[i]++;
 
                   send_iovec[0].iov_base = buffer;
