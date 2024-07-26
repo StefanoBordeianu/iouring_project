@@ -46,7 +46,7 @@ void sig_handler(int signum){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"p:d:k:")) != -1) {
+      while((opt =getopt(argc,argv,"p:d:k:K")) != -1) {
             switch (opt) {
                   case 'p':
                         starting_port = atoi(optarg);
