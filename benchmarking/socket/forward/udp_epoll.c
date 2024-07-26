@@ -22,11 +22,12 @@ long* pkts_sent_per_socket;
 struct epoll_event events[MAX_EVENTS];
 struct epoll_event* evs;
 long processed_events = 0;
+int sink = 0;
 
 void sig_handler(int signum){
       for(int i=0;i<number_of_sockets;i++){
-            printf("SOCKET index %d\n",i);
-            printf("Received: %ld packets\n",pkts_recv_per_socket[i]);
+            //printf("SOCKET index %d\n",i);
+            //printf("Received: %ld packets\n",pkts_recv_per_socket[i]);
             printf("Sent: %ld packets\n",pkts_sent_per_socket[i]);
             long speed = pkts_recv_per_socket[i]/duration;
             printf("Speed: %ld packets/second\n\n", speed);
@@ -56,6 +57,9 @@ int parse_arguments(int argc, char* argv[]){
                   case 'k':
                         number_of_sockets = atoi(optarg);
                         break;
+                  case 'K':
+                        sink = 1;
+                        break
             }
       }
       return 1;
@@ -172,15 +176,16 @@ int main(int argc, char *argv[]) {
                   }
                   pkts_recv_per_socket[i]++;
 
-
-                  send_iovec[0].iov_len = res;
-                  res = sendmsg(sock,&send_msg,0);
-                  if(res<=0){
-                        if(res==0)
-                              printf("sended zero bytes\n");
-                        else
-                              perror("send\n");
-                        return -1;
+                  if(!sink) {
+                        send_iovec[0].iov_len = res;
+                        res = sendmsg(sock, &send_msg, 0);
+                        if (res <= 0) {
+                              if (res == 0)
+                                    printf("sended zero bytes\n");
+                              else
+                                    perror("send\n");
+                              return -1;
+                        }
                   }
                   pkts_sent_per_socket[i]++;
                   processed_events++;

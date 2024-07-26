@@ -63,7 +63,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:k")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:K")) != -1) {
             switch (opt) {
                   case 'p':
                         port = atoi(optarg);
@@ -111,7 +111,7 @@ int parse_arguments(int argc, char* argv[]){
                   case 'n':
                         napi_timeout = atoi(optarg);
                         break;
-                  case 'k':
+                  case 'K':
                         sink = 1;
                         break;
                   case 'h':
