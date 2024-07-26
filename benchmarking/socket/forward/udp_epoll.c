@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define MAX_EVENTS 10
+#define MAX_EVENTS 10000
 
 long pkt = 0;
 int duration = 10;
@@ -139,6 +139,11 @@ int main(int argc, char *argv[]) {
       struct iovec send_iovec[1];
       struct  msghdr send_msg;
       memset(&send_msg,0, sizeof(send_msg));
+      send_msg.msg_name = &s_addr;
+      send_msg.msg_namelen = sizeof(s_addr);
+      send_msg.msg_iov = send_iovec;
+      send_msg.msg_iovlen = 1;
+      send_iovec[0].iov_base = buffer;
       while(1){
             numb_evs_available = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
             if (numb_evs_available == -1) {
@@ -167,12 +172,8 @@ int main(int argc, char *argv[]) {
                   }
                   pkts_recv_per_socket[i]++;
 
-                  send_iovec[0].iov_base = buffer;
+
                   send_iovec[0].iov_len = res;
-                  send_msg.msg_name = &s_addr;
-                  send_msg.msg_namelen = sizeof(s_addr);
-                  send_msg.msg_iov = send_iovec;
-                  send_msg.msg_iovlen = 1;
                   res = sendmsg(sock,&send_msg,0);
                   if(res<=0){
                         if(res==0)
