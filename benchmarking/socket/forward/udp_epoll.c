@@ -34,7 +34,8 @@ void sig_handler(int signum){
 
       }
 
-      printf("\nProcessed: %ld events\n",processed_events);
+      printf("Processed: %ld events\n",processed_events);
+      printf("Processed: %ld events/s\n",processed_events/duration);
       printf("Now closing\n\n");
       free(pkts_recv_per_socket);
       free(pkts_sent_per_socket);
