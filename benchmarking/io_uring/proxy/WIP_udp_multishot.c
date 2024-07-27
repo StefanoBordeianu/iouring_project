@@ -181,8 +181,8 @@ struct io_uring_buf_ring* init_buff_ring(){
 
       for (i = 0; i < number_of_buffers; i++) {
             int mask = io_uring_buf_ring_mask(number_of_buffers);
-            buffers[i] = malloc(size+sizeof(struct io_uring_recvmsg_out));
-            io_uring_buf_ring_add(br, buffers[i], (size+sizeof(struct io_uring_recvmsg_out)), i,mask,i);
+            buffers[i] = malloc( 2000);
+            io_uring_buf_ring_add(br, buffers[i], 2000, i,mask,i);
       }
       printf("ring added passed\n");
 
@@ -284,6 +284,7 @@ void add_recv_multishot(int socketfd) {
       req->socket = socketfd;
       io_uring_prep_recvmsg_multishot(sqe,socketfd,&msg,0);
       io_uring_sqe_set_flags(sqe,IOSQE_BUFFER_SELECT);
+      io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
       io_uring_sqe_set_data(sqe,req);
       sqe->buf_group = grp_id;
 
@@ -301,7 +302,7 @@ void handle_send(struct io_uring_cqe* cqe){
             printf("error on send,  number:%d\n",cqe->res);
       }
 
-      io_uring_buf_ring_add(buff_ring,buffers[buff_id],size,buff_id, mask,1);
+      io_uring_buf_ring_add(buff_ring,buffers[buff_id],2000,buff_id, mask,1);
       io_uring_buf_ring_advance(buff_ring,1);
 
       packets_sent++;
