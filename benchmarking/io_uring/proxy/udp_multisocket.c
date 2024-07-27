@@ -30,6 +30,7 @@ int napi = 0;
 int napi_timeout = 0;
 int number_of_sockets = 1;
 int sink = 0;
+int report = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -63,7 +64,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:k:K")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:k:KR")) != -1) {
             switch (opt) {
                   case 'p':
                         starting_port = atoi(optarg);
@@ -116,6 +117,9 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'K':
                         sink = 1;
+                        break;
+                  case 'R':
+                        report = 1;
                         break;
                   case 'h':
                         print_usage();
@@ -306,14 +310,16 @@ void start_loop(int* sockets){
 }
 
 void sig_handler(int signum){
-      for(int i=0;i<number_of_sockets;i++){
-            printf("SOCKET index %d\n",i);
-            printf("Received: %ld packets\n",pkts_recv_per_socket[i]);
-            printf("Sent: %ld packets\n",pkts_sent_per_socket[i]);
-            long speed = pkts_recv_per_socket[i]/duration;
-            printf("Speed: %ld packets/second\n\n", speed);
-
-      }
+      if(report)
+            for(int i=0;i<number_of_sockets;i++){
+                  printf("SOCKET index %d\n",i);
+                  if(!sink) {
+                        printf("Received: %ld packets\n", pkts_recv_per_socket[i]);
+                        printf("Sent: %ld packets\n", pkts_sent_per_socket[i]);
+                  }
+                  long speed = pkts_recv_per_socket[i]/duration;
+                  printf("Speed: %ld packets/second\n\n", speed);
+            }
 
       printf("\nProcessed: %ld events\n",total_events);
       printf("Now closing\n\n");

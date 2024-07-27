@@ -23,16 +23,18 @@ struct epoll_event events[MAX_EVENTS];
 struct epoll_event* evs;
 long processed_events = 0;
 int sink = 0;
+int report = 0;
 
 void sig_handler(int signum){
-      for(int i=0;i<number_of_sockets;i++){
-            //printf("SOCKET index %d\n",i);
-            //printf("Received: %ld packets\n",pkts_recv_per_socket[i]);
-            printf("Sent: %ld packets\n",pkts_sent_per_socket[i]);
-            long speed = pkts_recv_per_socket[i]/duration;
-            printf("Speed: %ld packets/second\n\n", speed);
+      if(report)
+            for(int i=0;i<number_of_sockets;i++){
+                  //printf("SOCKET index %d\n",i);
+                  //printf("Received: %ld packets\n",pkts_recv_per_socket[i]);
+                  printf("Sent: %ld packets\n",pkts_sent_per_socket[i]);
+                  long speed = pkts_recv_per_socket[i]/duration;
+                  printf("Speed: %ld packets/second\n\n", speed);
 
-      }
+            }
 
       printf("Processed: %ld events\n",processed_events);
       printf("Processed: %ld events/s\n",processed_events/duration);
@@ -47,7 +49,7 @@ void sig_handler(int signum){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"p:d:k:K")) != -1) {
+      while((opt =getopt(argc,argv,"p:d:k:KR")) != -1) {
             switch (opt) {
                   case 'p':
                         starting_port = atoi(optarg);
@@ -60,6 +62,9 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'K':
                         sink = 1;
+                        break;
+                  case 'R':
+                        report = 1;
                         break;
             }
       }
