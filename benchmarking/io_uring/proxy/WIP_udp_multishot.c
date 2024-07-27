@@ -265,19 +265,13 @@ void add_recv_multishot(int socketfd) {
       struct io_uring_sqe *sqe;
 
       req = malloc(sizeof(struct request));
-      iov = malloc(sizeof(struct iovec));
       msghdr = malloc(sizeof(struct msghdr));
-      src_add = malloc(sizeof(struct sockaddr_in));
       sqe = io_uring_get_sqe(ring);
       if (sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      iov->iov_len = 2000;
-      iov->iov_base = malloc(2000);
-      msghdr->msg_name = src_add;
-      msghdr->msg_namelen = sizeof(struct sockaddr_in);
-      msghdr->msg_iov = iov;
-      msghdr->msg_iovlen = 1;
+      msghdr->msg_namelen = sizeof(struct sockaddr_storage);
+
 
       req->msg = msghdr;
       req->type = EVENT_TYPE_RECV;
@@ -288,8 +282,6 @@ void add_recv_multishot(int socketfd) {
       io_uring_sqe_set_data(sqe,req);
       sqe->buf_group = grp_id;
 
-      if(fixed_file)
-            io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
 }
 
 void handle_send(struct io_uring_cqe* cqe){
