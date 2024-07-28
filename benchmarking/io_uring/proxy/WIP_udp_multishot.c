@@ -273,7 +273,7 @@ void add_recv_multishot(int socketfd) {
       io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
       io_uring_sqe_set_data(sqe,req);
       sqe->buf_group = grp_id;
-
+      io_uring_submit(ring);
 }
 
 void handle_send(struct io_uring_cqe* cqe){
