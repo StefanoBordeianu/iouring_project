@@ -257,18 +257,16 @@ void add_recv_multishot(int socketfd) {
       struct io_uring_sqe *sqe;
 
       req = malloc(sizeof(struct request));
-      msghdr = malloc(sizeof(struct msghdr));
       sqe = io_uring_get_sqe(ring);
       if (sqe == NULL)
             printf("ERROR while getting the sqe\n");
 
-      msghdr->msg_namelen = sizeof(struct sockaddr_storage);
 
       printf("addin receive for socket %d\n", socketfd);
-      req->msg = msghdr;
+      req->msg = &msg;
       req->type = EVENT_TYPE_RECV;
       req->socket = socketfd;
-      io_uring_prep_recvmsg_multishot(sqe,socketfd,msghdr,MSG_TRUNC);
+      io_uring_prep_recvmsg_multishot(sqe,socketfd,&msg,MSG_TRUNC);
       io_uring_sqe_set_flags(sqe,IOSQE_BUFFER_SELECT);
       io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
       io_uring_sqe_set_data(sqe,req);
