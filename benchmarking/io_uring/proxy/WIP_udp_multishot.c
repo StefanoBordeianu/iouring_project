@@ -27,8 +27,6 @@ int initial_count = 64;
 int ring_entries = 1024;
 int fixed_file = 1;
 int sq_poll = 0;
-int napi = 0;
-int napi_timeout = 0;
 int number_of_buffers = 2048;
 
 struct io_uring* ring;
@@ -109,12 +107,6 @@ int parse_arguments(int argc, char* argv[]){
                   case 'P':
                         fixed_file = 1;
                         sq_poll = 1;
-                        break;
-                  case 'N':
-                        napi = 1;
-                        break;
-                  case 'n':
-                        napi_timeout = atoi(optarg);
                         break;
                   case 'h':
                         print_usage();
@@ -272,11 +264,11 @@ void add_recv_multishot(int socketfd) {
 
       msghdr->msg_namelen = sizeof(struct sockaddr_storage);
 
-
+      printf("addin receive for socket %d\n", socketfd);
       req->msg = msghdr;
       req->type = EVENT_TYPE_RECV;
       req->socket = socketfd;
-      io_uring_prep_recvmsg_multishot(sqe,socketfd,msghdr,0);
+      io_uring_prep_recvmsg_multishot(sqe,socketfd,msghdr,MSG_TRUNC);
       io_uring_sqe_set_flags(sqe,IOSQE_BUFFER_SELECT);
       io_uring_sqe_set_flags(sqe,IOSQE_FIXED_FILE);
       io_uring_sqe_set_data(sqe,req);
@@ -419,29 +411,13 @@ int main(int argc, char* argv[]){
             exit(-1);
       }
 
-      if(fixed_file){
-            fixed_files[0] = socketfd;
-            if(io_uring_register_files(ring,fixed_files,1)<0){
-                  printf("Register file error\n");
-                  exit(-1);
-            }
-            socketfd = 0;
-      }
 
-      if (napi) {
-            struct io_uring_napi n = {
-                    .prefer_busy_poll = napi > 1 ? 1 : 0,
-                    .busy_poll_to = napi_timeout,
-            };
-
-            ret = io_uring_register_napi(ring, &n);
-            if (ret) {
-                  fprintf(stderr, "io_uring_register_napi: %d\n", ret);
-                  if (ret != -EINVAL)
-                        return 1;
-                  fprintf(stderr, "NAPI not available, turned off\n");
-            }
+      fixed_files[0] = socketfd;
+      if(io_uring_register_files(ring,fixed_files,1)<0){
+            printf("Register file error\n");
+            exit(-1);
       }
+      socketfd = 0;
 
       memset(&msg, 0, sizeof(msg));
       msg.msg_namelen = sizeof(struct sockaddr_storage);
