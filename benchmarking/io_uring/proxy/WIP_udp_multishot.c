@@ -313,8 +313,10 @@ void handle_recv(struct io_uring_cqe* cqe){
 
       buff_idx = cqe->flags >> IORING_CQE_BUFFER_SHIFT;
       out_msg = io_uring_recvmsg_validate(&buffers[buff_idx],size,&msg);
-      if(out_msg == NULL)
+      if(out_msg == NULL) {
             printf("Something wrong with recv buffers (not validated)\n");
+            return;
+      }
 
       send_iovecs[buff_idx] = (struct iovec) {
               .iov_base = io_uring_recvmsg_payload(out_msg, &msg),
