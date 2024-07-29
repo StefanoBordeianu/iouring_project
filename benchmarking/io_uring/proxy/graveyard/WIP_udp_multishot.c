@@ -159,7 +159,7 @@ struct io_uring_buf_ring* init_buff_ring(){
       br = io_uring_setup_buf_ring(ring,number_of_buffers,bgid,0,&ret);
       if (ret) {
             fprintf(stderr, "buf_ring init failed: %d\n",-ret);
-            return 0;
+            exit(1);
       }
       printf("setup buff ring passed\n");
       if(br == NULL){
