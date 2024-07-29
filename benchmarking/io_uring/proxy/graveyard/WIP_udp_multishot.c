@@ -157,6 +157,10 @@ struct io_uring_buf_ring* init_buff_ring(){
       }
       printf("1st posix passed\n");
       br = io_uring_setup_buf_ring(ring,number_of_buffers,bgid,0,&ret);
+      if (ret) {
+            fprintf(stderr, "buf_ring init failed: %d\n",-ret);
+            return 0;
+      }
       printf("setup buff ring passed\n");
       if(br == NULL){
             printf("setup buff ring\n");

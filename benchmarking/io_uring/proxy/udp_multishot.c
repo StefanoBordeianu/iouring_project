@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <liburing/io_uring.h>
-#include <liburing.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <signal.h>
 #include <unistd.h>
-#include <sys/mman.h>
+
+#include "liburing.h"
 
 #define EVENT_TYPE_SEND 1
 #define EVENT_TYPE_RECV 2
