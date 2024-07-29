@@ -338,6 +338,9 @@ void handle_recv(struct io_uring_cqe* cqe){
             exit(1);
       }
 
+      if (!(cqe->flags & IORING_CQE_F_MORE))
+            add_multishot_recvmsg(sock_index);
+
       if (!start) {
             start = 1;
             alarm(duration);
