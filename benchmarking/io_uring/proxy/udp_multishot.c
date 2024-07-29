@@ -74,6 +74,7 @@ void init_data_structures(){
       sockets = malloc(sizeof(int)*number_of_sockets);
       pkts_recv_per_socket = malloc(sizeof(long)*number_of_sockets);
       pkts_sent_per_socket = malloc(sizeof(long)*number_of_sockets);
+      local_msgs = malloc(sizeof(struct msgs*)*number_of_sockets);
 
       for(int i=0;i<number_of_sockets;i++)
             local_msgs[i] = malloc(sizeof(struct msgs)*buffers_per_ring);
@@ -321,7 +322,6 @@ void handle_send(struct io_uring_cqe* cqe){
 
 void handle_recv(struct io_uring_cqe* cqe){
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
-      struct request* send_req = malloc(sizeof(struct request));
       struct io_uring_recvmsg_out *o;
       int sock_index = req->socket_index;
       int index;
