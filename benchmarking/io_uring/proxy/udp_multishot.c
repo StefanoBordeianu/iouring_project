@@ -39,7 +39,7 @@ long* pkts_recv_per_socket;
 long* pkts_sent_per_socket;
 long total_events = 0;
 int* sockets;
-struct msgs* local_msgs;
+struct msgs** local_msgs;
 struct io_uring_buf_ring** buff_rings;
 char* buffers;
 struct msghdr recv_msg;
@@ -50,7 +50,8 @@ struct msgs {
 };
 
 struct request{
-    int index;
+    int socket_index;
+    int buffer_index;
     int type;
 };
 
@@ -73,7 +74,10 @@ void init_data_structures(){
       sockets = malloc(sizeof(int)*number_of_sockets);
       pkts_recv_per_socket = malloc(sizeof(long)*number_of_sockets);
       pkts_sent_per_socket = malloc(sizeof(long)*number_of_sockets);
-      local_msgs = malloc(sizeof(struct msgs)*number_of_sockets*buffers_per_ring);
+
+      for(int i=0;i<number_of_sockets;i++)
+            local_msgs[i] = malloc(sizeof(struct msgs)*buffers_per_ring);
+
       buff_rings = malloc(sizeof(struct io_uring_buf_ring*)*number_of_sockets);
       buffers = malloc(buffer_size*buffers_per_ring*number_of_sockets);
       memset(&recv_msg,0,sizeof(struct msghdr));
@@ -228,6 +232,7 @@ void recycle_buffer(int group, int index){
 //      printf("ring buffer initiated for socket %d",sock_index);
 //      return 1;
 //}
+
 int init_buffers(int sock_index){
       int ret, i;
 
@@ -243,12 +248,40 @@ int init_buffers(int sock_index){
       }
       io_uring_buf_ring_advance(buff_rings[sock_index], buffers_per_ring);
 
-      printf("ring buffer initiated for socket %d",sock_index);
+      printf("ring buffer initiated for socket %d\n",sock_index);
       return 1;
 }
 
-void add_send(struct request* req){
-// TODO
+void add_send(struct io_uring_recvmsg_out *o, int lenght, int sock_index, int index){
+      struct request* req = malloc(sizeof(struct request));
+      struct io_uring_sqe *sqe;
+
+      sqe = io_uring_get_sqe(ring);
+      if (sqe == NULL)
+            printf("ERROR while getting the sqe\n");
+
+
+      local_msgs[sock_index][index].iov = (struct iovec) {
+              .iov_base = io_uring_recvmsg_payload(o, &recv_msg),
+              .iov_len =
+              io_uring_recvmsg_payload_length(o, lenght, &recv_msg)
+      };
+      local_msgs[sock_index][index].msg = (struct msghdr) {
+              .msg_namelen = o->namelen,
+              .msg_name = io_uring_recvmsg_name(o),
+              .msg_control = NULL,
+              .msg_controllen = 0,
+              .msg_iov = &local_msgs[sock_index][index].iov,
+              .msg_iovlen = 1
+      };
+
+      req->type= EVENT_TYPE_SEND;
+      req->socket_index = sock_index;
+      req->buffer_index = index;
+
+      io_uring_prep_sendmsg(sqe, sock_index, &local_msgs[sock_index][index].msg, 0);
+      io_uring_sqe_set_data(sqe, req);
+      sqe->flags |= IOSQE_FIXED_FILE;
 }
 
 
@@ -263,7 +296,7 @@ void add_multishot_recvmsg(int sock_index) {
 
       req = malloc(sizeof(struct request));
       req->type = EVENT_TYPE_RECV;
-      req->index = sock_index;
+      req->socket_index = sock_index;
 
       io_uring_prep_recvmsg_multishot(sqe, sock_index, &recv_msg, MSG_TRUNC);
       sqe->flags |= IOSQE_FIXED_FILE;
@@ -275,14 +308,22 @@ void add_multishot_recvmsg(int sock_index) {
 
 void handle_send(struct io_uring_cqe* cqe){
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
+      int index = req->buffer_index;
+      int sock_index = req->socket_index;
 
+      pkts_sent_per_socket[sock_index]++;
+
+      if (cqe->res < 0)
+            fprintf(stderr, "bad send %s\n", strerror(-cqe->res));
+      recycle_buffer(sock_index, index);
 }
 
 
 void handle_recv(struct io_uring_cqe* cqe){
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
+      struct request* send_req = malloc(sizeof(struct request));
       struct io_uring_recvmsg_out *o;
-      int sock_index = req->index;
+      int sock_index = req->socket_index;
       int index;
       int res = cqe->res;
 
@@ -314,8 +355,18 @@ void handle_recv(struct io_uring_cqe* cqe){
             recycle_buffer(sock_index, index);
             return;
       }
+      if (o->flags & MSG_TRUNC) {
+            unsigned int r;
 
+            r = io_uring_recvmsg_payload_length(o, cqe->res, &recv_msg);
+            fprintf(stderr, "truncated msg need %u received %u\n",
+                    o->payloadlen, r);
+            recycle_buffer(sock_index, index);
+            return;
+      }
+      pkts_recv_per_socket[sock_index]++;
 
+      add_send(o,res,sock_index,index);
 }
 
 
