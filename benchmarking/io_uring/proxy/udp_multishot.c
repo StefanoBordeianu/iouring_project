@@ -21,7 +21,6 @@ int async = 0;
 int single = 0;
 int defer = 0;
 int size = 64;
-int initial_count = 16;
 int ring_entries = 1024;
 int fixed_file = 0;
 int sq_poll = 0;
@@ -30,7 +29,7 @@ int napi_timeout = 0;
 int number_of_sockets = 1;
 int sink = 0;
 int report = 0;
-int buffers_per_ring = 1024;
+int buffers_per_ring = 1024*8;
 int buffer_size = 2048;
 
 struct io_uring* ring;
@@ -86,6 +85,19 @@ void init_data_structures(){
       recv_msg.msg_controllen = 0;
 }
 
+void cleanup(){
+      free(sockets);
+      free(pkts_recv_per_socket);
+      free(pkts_sent_per_socket);
+      free(buffers);
+      for(int i=0;i<number_of_sockets;i++)
+            free(local_msgs[i]);
+      free(local_msgs);
+      for(int i=0;i<number_of_sockets;i++)
+            io_uring_free_buf_ring(ring,buff_rings[i],buffers_per_ring,i);
+      io_uring_close_ring_fd(ring);
+}
+
 
 int parse_arguments(int argc, char* argv[]){
       int opt;
@@ -118,9 +130,6 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'D':
                         defer = 1;
-                        break;
-                  case 'i':
-                        initial_count = atoi(optarg);
                         break;
                   case 'r':
                         ring_entries = atoi(optarg);
@@ -317,6 +326,7 @@ void handle_send(struct io_uring_cqe* cqe){
       if (cqe->res < 0)
             fprintf(stderr, "bad send %s\n", strerror(-cqe->res));
       recycle_buffer(sock_index, index);
+      free(req);
 }
 
 
@@ -330,6 +340,9 @@ void handle_recv(struct io_uring_cqe* cqe){
       if (cqe->res == -ENOBUFS)
             return ;
 
+      if (!(cqe->flags & IORING_CQE_F_MORE))
+            add_multishot_recvmsg(sock_index);
+
       if (!(cqe->flags & IORING_CQE_F_BUFFER) || cqe->res < 0) {
             fprintf(stderr, "recv cqe bad res %d\n", cqe->res);
             if (cqe->res == -EFAULT || cqe->res == -EINVAL)
@@ -337,9 +350,6 @@ void handle_recv(struct io_uring_cqe* cqe){
                           "NB: This requires a kernel version >= 6.0\n");
             exit(1);
       }
-
-      if (!(cqe->flags & IORING_CQE_F_MORE))
-            add_multishot_recvmsg(sock_index);
 
       if (!start) {
             start = 1;
@@ -427,11 +437,7 @@ void sig_handler(int signum){
 
       printf("\nProcessed: %ld events\n",total_events);
       printf("Now closing\n\n");
-      io_uring_queue_exit(ring);
-      free(pkts_recv_per_socket);
-      free(pkts_sent_per_socket);
-      free(ring);
-      exit(0);
+      cleanup();
 }
 
 
