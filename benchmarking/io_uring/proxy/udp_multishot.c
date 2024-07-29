@@ -259,6 +259,7 @@ void add_multishot_recvmsg(int sock_index) {
       sqe = io_uring_get_sqe(ring);
       if (sqe == NULL)
             printf("ERROR while getting the sqe\n");
+      printf("Adding recvmsg_multishot to socket %d\n",sock_index);
 
       req = malloc(sizeof(struct request));
       req->type = EVENT_TYPE_RECV;
@@ -390,7 +391,7 @@ int main(int argc, char* argv[]){
       signal(SIGALRM,sig_handler);
 
       init_data_structures();
-      
+
       if(coop)
             params.flags |= IORING_SETUP_COOP_TASKRUN;
       if(single)
