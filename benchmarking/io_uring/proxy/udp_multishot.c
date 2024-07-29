@@ -187,33 +187,52 @@ void recycle_buffer(int group, int index){
 }
 
 
+//int init_buffers(int sock_index){
+//      int ret, i;
+//      void *mapped;
+//      size_t buf_ring_size;
+//      struct io_uring_buf_reg reg = { .ring_addr = 0,
+//              .ring_entries = buffers_per_ring,
+//              .bgid = sock_index };
+//
+//
+//      buf_ring_size = (sizeof(struct io_uring_buf) + buffer_size) * buffers_per_ring;
+//      mapped = mmap(NULL, buf_ring_size, PROT_READ | PROT_WRITE,
+//                    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+//      if (mapped == MAP_FAILED) {
+//            fprintf(stderr, "buf_ring mmap: %s\n", strerror(errno));
+//            return -1;
+//      }
+//
+//      buff_rings[sock_index] = (struct io_uring_buf_ring *)mapped;
+//
+//      io_uring_buf_ring_init(buff_rings[sock_index]);
+//
+//      reg = (struct io_uring_buf_reg) {
+//              .ring_addr = (unsigned long)buff_rings[sock_index],
+//              .ring_entries = buf_ring_size,
+//              .bgid = sock_index
+//      };
+//
+//      ret = io_uring_register_buf_ring(ring, &reg, 0);
+//      if (ret) {
+//            fprintf(stderr, "buf_ring init failed: %s\n",strerror(-ret));
+//            return ret;
+//      }
+//
+//      for (i = 0; i < buffers_per_ring; i++) {
+//            io_uring_buf_ring_add(buff_rings[sock_index], get_buffer(sock_index, i), buffer_size, i,
+//                                  io_uring_buf_ring_mask(buffers_per_ring), i);
+//      }
+//      io_uring_buf_ring_advance(buff_rings[sock_index], buffers_per_ring);
+//
+//      printf("ring buffer initiated for socket %d",sock_index);
+//      return 1;
+//}
 int init_buffers(int sock_index){
       int ret, i;
-      void *mapped;
-      size_t buf_ring_size;
-      struct io_uring_buf_reg reg = { .ring_addr = 0,
-              .ring_entries = buffers_per_ring,
-              .bgid = sock_index };
 
-
-      buf_ring_size = (sizeof(struct io_uring_buf) + buffer_size) * buffers_per_ring;
-      mapped = mmap(NULL, buf_ring_size, PROT_READ | PROT_WRITE,
-                    MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-      if (mapped == MAP_FAILED) {
-            fprintf(stderr, "buf_ring mmap: %s\n", strerror(errno));
-            return -1;
-      }
-      buff_rings[sock_index] = (struct io_uring_buf_ring *)mapped;
-
-      io_uring_buf_ring_init(buff_rings[sock_index]);
-
-      reg = (struct io_uring_buf_reg) {
-              .ring_addr = (unsigned long)buff_rings[sock_index],
-              .ring_entries = buf_ring_size,
-              .bgid = sock_index
-      };
-
-      ret = io_uring_register_buf_ring(ring, &reg, 0);
+      buff_rings[sock_index] = io_uring_setup_buf_ring(ring,buffers_per_ring,sock_index,0,&ret);
       if (ret) {
             fprintf(stderr, "buf_ring init failed: %s\n",strerror(-ret));
             return ret;
@@ -228,7 +247,6 @@ int init_buffers(int sock_index){
       printf("ring buffer initiated for socket %d",sock_index);
       return 1;
 }
-
 
 void add_send(struct request* req){
 // TODO
