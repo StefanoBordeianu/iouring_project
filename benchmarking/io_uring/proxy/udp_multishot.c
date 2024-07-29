@@ -234,7 +234,7 @@ int init_buffers(int sock_index){
 
       buff_rings[sock_index] = io_uring_setup_buf_ring(ring,buffers_per_ring,sock_index,0,&ret);
       if (ret) {
-            fprintf(stderr, "buf_ring init failed: %s\n",strerror(-ret));
+            fprintf(stderr, "buf_ring init failed: %d\n",-ret);
             return ret;
       }
 
