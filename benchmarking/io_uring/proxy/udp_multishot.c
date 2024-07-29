@@ -373,8 +373,11 @@ int main(int argc, char* argv[]){
       signal(SIGALRM,sig_handler);
 
       init_data_structures();
-      for(int i=0;i<number_of_sockets;i++)
+
+      for(int i=0;i<number_of_sockets;i++){
             sockets[i] = create_socket(starting_port+i);
+            init_buffers(i);
+      }
 
       if(coop)
             params.flags |= IORING_SETUP_COOP_TASKRUN;
