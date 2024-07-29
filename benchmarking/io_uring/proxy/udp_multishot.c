@@ -225,6 +225,7 @@ int init_buffers(int sock_index){
       }
       io_uring_buf_ring_advance(buff_rings[sock_index], buffers_per_ring);
 
+      printf("ring buffer initiated for socket %d",sock_index);
       return 1;
 }
 
@@ -248,7 +249,6 @@ void add_multishot_recvmsg(int sock_index) {
 
       io_uring_prep_recvmsg_multishot(sqe, sock_index, &recv_msg, MSG_TRUNC);
       sqe->flags |= IOSQE_FIXED_FILE;
-
       sqe->flags |= IOSQE_BUFFER_SELECT;
       sqe->buf_group = sock_index;
       io_uring_sqe_set_data(sqe,req);
@@ -256,6 +256,12 @@ void add_multishot_recvmsg(int sock_index) {
 
 
 void handle_send(struct io_uring_cqe* cqe){
+      struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
+
+}
+
+
+void handle_recv(struct io_uring_cqe* cqe){
       struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
       struct io_uring_recvmsg_out *o;
       int sock_index = req->index;
@@ -290,16 +296,6 @@ void handle_send(struct io_uring_cqe* cqe){
             recycle_buffer(sock_index, index);
             return;
       }
-}
-
-
-void handle_recv(struct io_uring_cqe* cqe){
-      struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
-      int res = cqe->res;
-      if(res<0){
-            printf("RECV ERROR, number %d\n",-res);
-            exit(1);
-      }
 
 
 }
@@ -311,9 +307,7 @@ void start_loop(){
       timespec.tv_nsec = 100000000;
 
       for(int i=0;i<number_of_sockets;i++){
-            for (int j = 0; j < initial_count; j++) {
-                  add_multishot_recvmsg(i);
-            }
+            add_multishot_recvmsg(i);
       }
 
       while(1){
@@ -370,7 +364,6 @@ void sig_handler(int signum){
 
 
 int main(int argc, char* argv[]){
-      int ret;
       struct io_uring_params params = {};
       ring = malloc(sizeof(struct io_uring));
 
@@ -403,5 +396,5 @@ int main(int argc, char* argv[]){
             exit(-1);
       }
 
-      start_loop(sockets);
+      start_loop();
 }
