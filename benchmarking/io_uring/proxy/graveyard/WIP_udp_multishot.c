@@ -306,6 +306,7 @@ void handle_recv(struct io_uring_cqe* cqe){
       }
       if(cqe->res < 0){
             printf("error on receive,  number:%d\n",cqe->res);
+            exit(1);
       }
 
       if(!(cqe->flags & IORING_CQE_F_MORE)) {
