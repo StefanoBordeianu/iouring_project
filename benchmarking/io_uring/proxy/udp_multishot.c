@@ -150,6 +150,9 @@ int parse_arguments(int argc, char* argv[]){
                   case 'R':
                         report = 1;
                         break;
+                  case 'n':
+                        buffers_per_ring = atoi(optarg);
+                        break;
                   case 'h':
                         print_usage();
                         return -1;
