@@ -30,7 +30,7 @@ int number_of_sockets = 1;
 int sink = 0;
 int report = 0;
 int buffers_per_ring = 1024*8;
-int buffer_size = 2048;
+int buffer_size = 3500;
 
 struct io_uring* ring;
 int start = 0;
@@ -348,9 +348,6 @@ void handle_recv(struct io_uring_cqe* cqe){
 
       if (!(cqe->flags & IORING_CQE_F_BUFFER) || cqe->res < 0) {
             fprintf(stderr, "recv cqe bad res %d\n", cqe->res);
-            if (cqe->res == -EFAULT || cqe->res == -EINVAL)
-                  fprintf(stderr,
-                          "NB: This requires a kernel version >= 6.0\n");
             exit(1);
       }
 
