@@ -390,12 +390,7 @@ int main(int argc, char* argv[]){
       signal(SIGALRM,sig_handler);
 
       init_data_structures();
-
-      for(int i=0;i<number_of_sockets;i++){
-            sockets[i] = create_socket(starting_port+i);
-            init_buffers(i);
-      }
-
+      
       if(coop)
             params.flags |= IORING_SETUP_COOP_TASKRUN;
       if(single)
@@ -410,6 +405,11 @@ int main(int argc, char* argv[]){
       if(io_uring_queue_init_params(ring_entries,ring,&params)<0){
             printf("Init ring error\n");
             exit(-1);
+      }
+
+      for(int i=0;i<number_of_sockets;i++){
+            sockets[i] = create_socket(starting_port+i);
+            init_buffers(i);
       }
 
       if(io_uring_register_files(ring,sockets,number_of_sockets)<0){

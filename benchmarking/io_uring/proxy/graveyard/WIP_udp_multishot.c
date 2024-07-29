@@ -149,13 +149,13 @@ struct io_uring_buf_ring* init_buff_ring(){
       long page_size = sysconf(_SC_PAGESIZE);
       bgid = grp_id;
 
-      printf("SIZE: %ld\nSCpagesize:  %ld\n",
-             (number_of_buffers * sizeof(struct io_uring_buf)),page_size);
-      if (posix_memalign((void **) &br, page_size,number_of_buffers * sizeof(struct io_uring_buf))){
-            printf("1st Posix\n");
-            return NULL;
-      }
-      printf("1st posix passed\n");
+//      printf("SIZE: %ld\nSCpagesize:  %ld\n",
+//             (number_of_buffers * sizeof(struct io_uring_buf)),page_size);
+//      if (posix_memalign((void **) &br, page_size,number_of_buffers * sizeof(struct io_uring_buf))){
+//            printf("1st Posix\n");
+//            return NULL;
+//      }
+      //printf("1st posix passed\n");
       br = io_uring_setup_buf_ring(ring,number_of_buffers,bgid,0,&ret);
       if (ret) {
             fprintf(stderr, "buf_ring init failed: %d\n",-ret);
