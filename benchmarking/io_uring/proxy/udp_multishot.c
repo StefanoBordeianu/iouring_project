@@ -31,6 +31,7 @@ int sink = 0;
 int report = 0;
 int buffers_per_ring = 1024*8;
 int buffer_size = 3500;
+int sq_affinity = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -124,6 +125,9 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'A':
                         async = 1;
+                        break;
+                  case'a':
+                        sq_affinity = atoi(optarg);
                         break;
                   case 'S':
                         single = 1;
@@ -452,13 +456,21 @@ int main(int argc, char* argv[]){
 
       init_data_structures();
 
-      if(coop)
+      params.flags |= IORING_FEAT_NATIVE_WORKERS;
+
+      if(coop) {
             params.flags |= IORING_SETUP_COOP_TASKRUN;
+            params.flags |= IORING_SETUP_TASKRUN_FLAG;
+      }
       if(single)
             params.flags |= IORING_SETUP_SINGLE_ISSUER;
       if(defer)
             params.flags |= IORING_SETUP_DEFER_TASKRUN;
       if(sq_poll) {
+            if(sq_affinity!=0) {
+                  params.flags |= IORING_SETUP_SQ_AFF;
+                  params.sq_thread_cpu = sq_affinity;
+            }
             params.flags |= IORING_SETUP_SQPOLL;
             params.sq_thread_idle = 10000;
       }
