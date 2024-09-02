@@ -103,7 +103,7 @@ void cleanup(){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:k:KR")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:a:TACSDi:r:FPNn:k:KR")) != -1) {
             switch (opt) {
                   case 'p':
                         starting_port = atoi(optarg);
