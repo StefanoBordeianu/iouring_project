@@ -355,7 +355,6 @@ int main(int argc, char* argv[]){
 
       if(coop) {
             params.flags |= IORING_SETUP_COOP_TASKRUN;
-            params.flags |= IORING_SETUP_TASKRUN_FLAG;
       }
       if(single)
             params.flags |= IORING_SETUP_SINGLE_ISSUER;
