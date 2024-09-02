@@ -126,7 +126,7 @@ int parse_arguments(int argc, char* argv[]){
                   case 'A':
                         async = 1;
                         break;
-                  case'a':
+                  case 'a':
                         sq_affinity = atoi(optarg);
                         break;
                   case 'S':
