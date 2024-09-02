@@ -31,6 +31,7 @@ int napi_timeout = 0;
 int number_of_sockets = 1;
 int sink = 0;
 int report = 0;
+int sq_affinity = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -64,7 +65,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:TACSDi:r:FPNn:k:KR")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:d:b:a:TACSDi:r:FPNn:k:KR")) != -1) {
             switch (opt) {
                   case 'p':
                         starting_port = atoi(optarg);
@@ -86,6 +87,9 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'A':
                         async = 1;
+                        break;
+                  case 'a':
+                        sq_affinity = atoi(optarg);
                         break;
                   case 'S':
                         single = 1;
@@ -347,13 +351,21 @@ int main(int argc, char* argv[]){
       for(int i=0;i<number_of_sockets;i++)
             sockets[i] = create_socket(starting_port+i);
 
-      if(coop)
+      params.flags |= IORING_FEAT_NATIVE_WORKERS;
+
+      if(coop) {
             params.flags |= IORING_SETUP_COOP_TASKRUN;
+            params.flags |= IORING_SETUP_TASKRUN_FLAG;
+      }
       if(single)
             params.flags |= IORING_SETUP_SINGLE_ISSUER;
       if(defer)
             params.flags |= IORING_SETUP_DEFER_TASKRUN;
       if(sq_poll) {
+            if(sq_affinity!=0) {
+                  params.flags |= IORING_SETUP_SQ_AFF;
+                  params.sq_thread_cpu = sq_affinity;
+            }
             params.flags |= IORING_SETUP_SQPOLL;
             params.sq_thread_idle = 10000;
       }
