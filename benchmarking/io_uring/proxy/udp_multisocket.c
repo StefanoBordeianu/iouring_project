@@ -351,7 +351,7 @@ int main(int argc, char* argv[]){
       for(int i=0;i<number_of_sockets;i++)
             sockets[i] = create_socket(starting_port+i);
 
-      params.flags |= IORING_FEAT_NATIVE_WORKERS;
+      //params.flags |= IORING_FEAT_NATIVE_WORKERS;
 
       if(coop) {
             params.flags |= IORING_SETUP_COOP_TASKRUN;
