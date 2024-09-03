@@ -284,7 +284,7 @@ void start_loop(int* sockets){
       }
 
       if(sq_poll!=0){
-            io_uring_enter(ring->ring_fd,initial_count,0,0,NULL);
+            io_uring_enter(ring->ring_fd,initial_count,0,IORING_ENTER_SQ_WAKEUP,NULL);
       }
       while(1){
             int head,i;
