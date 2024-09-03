@@ -284,13 +284,12 @@ void start_loop(int* sockets){
       }
 
       while(1){
-            int reaped,head,i;
+            int head,i;
             struct io_uring_cqe* cqe;
             struct __kernel_timespec *ts = &timespec;
 
-            reaped = io_uring_submit_and_wait_timeout(ring,&cqe,batching,ts,NULL);
-            if(reaped < 0)
-                  continue;
+            if(sq_poll==0)
+                  io_uring_submit_and_wait_timeout(ring,&cqe,batching,ts,NULL);
 
             i=0;
             io_uring_for_each_cqe(ring,head,cqe){
