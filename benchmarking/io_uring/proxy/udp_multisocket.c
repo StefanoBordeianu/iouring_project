@@ -304,6 +304,7 @@ void start_loop(int* sockets){
 
             i=0;
             io_uring_for_each_cqe(ring,head,cqe){
+                  printf("into the foreach\n");
                   struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
                   switch(req->type){
                         case EVENT_TYPE_SEND:
