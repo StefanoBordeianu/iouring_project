@@ -298,9 +298,11 @@ void start_loop(int* sockets){
                   r = io_uring_submit_and_wait_timeout(ring,&cqe,batching,ts,NULL);
             else
                   r = (int) io_uring_peek_batch_cqe(ring,&cqe,batching);
+            printf("r = %d\n",r);
 
             if(r==0)
                   continue;
+            printf("passed the continue\n");
 
             i=0;
             io_uring_for_each_cqe(ring,head,cqe){
