@@ -283,6 +283,9 @@ void start_loop(int* sockets){
             }
       }
 
+      if(sq_poll!=0){
+            io_uring_submit(ring);
+      }
       while(1){
             int head,i;
             struct io_uring_cqe* cqe;
