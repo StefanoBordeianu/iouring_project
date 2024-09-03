@@ -287,12 +287,17 @@ void start_loop(int* sockets){
             io_uring_enter(ring->ring_fd,initial_count,initial_count,IORING_ENTER_SQ_WAKEUP,NULL);
       }
       while(1){
-            int head,i;
+            int r,head,i;
             struct io_uring_cqe* cqe;
             struct __kernel_timespec *ts = &timespec;
 
             if(sq_poll==0)
-                  io_uring_submit_and_wait_timeout(ring,&cqe,batching,ts,NULL);
+                  r = io_uring_submit_and_wait_timeout(ring,&cqe,batching,ts,NULL);
+            else
+                  r = (int) io_uring_peek_batch_cqe(ring,&cqe,batching);
+
+            if(r==0)
+                  continue;
 
             i=0;
             io_uring_for_each_cqe(ring,head,cqe){
