@@ -284,7 +284,10 @@ void start_loop(int* sockets){
       }
 
       if(sq_poll!=0){
-            io_uring_enter(ring->ring_fd,initial_count,initial_count,IORING_ENTER_SQ_WAKEUP,NULL);
+            printf("before io_uring_enter\n");
+            io_uring_enter(ring->ring_fd,initial_count,8,IORING_ENTER_SQ_WAKEUP,NULL);
+            printf("after io_uring_enter\n");
+
       }
       while(1){
             int r,head,i;
