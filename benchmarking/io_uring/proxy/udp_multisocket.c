@@ -297,7 +297,7 @@ void start_loop(int* sockets){
             else{
                   io_uring_submit(ring);
                   r = (int) io_uring_peek_batch_cqe(ring,&cqe,batching);
-                  if(r==batching && de)
+                  if(r==batching && batch_info)
                         printf("Batching filled\n");
             }
 
