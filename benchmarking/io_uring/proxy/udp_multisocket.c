@@ -295,16 +295,11 @@ void start_loop(int* sockets){
                   r = (int) io_uring_peek_batch_cqe(ring,&cqe,batching);
             }
 
-            if(r!=0)
-                  printf("r = %d\n",r);
-
             if(r==0)
                   continue;
-            printf("passed the continue\n");
 
             i=0;
             io_uring_for_each_cqe(ring,head,cqe){
-                  printf("into the foreach\n");
                   struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
                   switch(req->type){
                         case EVENT_TYPE_SEND:
