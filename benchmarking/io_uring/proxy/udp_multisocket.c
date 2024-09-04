@@ -32,6 +32,7 @@ int number_of_sockets = 1;
 int sink = 0;
 int report = 0;
 int sq_affinity = 0;
+int batch_info = 0;
 
 struct io_uring* ring;
 int start = 0;
@@ -65,7 +66,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:d:b:a:TACSDi:r:FPNn:k:KR")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:bd:b:a:TACSDi:r:FPNn:k:KR")) != -1) {
             switch (opt) {
                   case 'p':
                         starting_port = atoi(optarg);
@@ -124,6 +125,9 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'R':
                         report = 1;
+                        break;
+                  case 'B':
+                        batch_info = 1;
                         break;
                   case 'h':
                         print_usage();
@@ -293,11 +297,12 @@ void start_loop(int* sockets){
             else{
                   io_uring_submit(ring);
                   r = (int) io_uring_peek_batch_cqe(ring,&cqe,batching);
+                  if(r==batching && de)
+                        printf("Batching filled\n");
             }
 
             if(r==0)
                   continue;
-
             i=0;
             io_uring_for_each_cqe(ring,head,cqe){
                   struct request* req = (struct request*)io_uring_cqe_get_data(cqe);
