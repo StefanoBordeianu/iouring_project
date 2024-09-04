@@ -283,12 +283,6 @@ void start_loop(int* sockets){
             }
       }
 
-      if(sq_poll!=0){
-            printf("before io_uring_enter\n");
-            io_uring_enter(ring->ring_fd,initial_count,8,IORING_ENTER_SQ_WAKEUP,NULL);
-            printf("after io_uring_enter\n");
-
-      }
       while(1){
             int r,head,i;
             struct io_uring_cqe* cqe;
@@ -296,8 +290,11 @@ void start_loop(int* sockets){
 
             if(sq_poll==0)
                   r = io_uring_submit_and_wait_timeout(ring,&cqe,batching,ts,NULL);
-            else
+            else{
+                  io_uring_submit(ring);
                   r = (int) io_uring_peek_batch_cqe(ring,&cqe,batching);
+            }
+
             if(r!=0)
                   printf("r = %d\n",r);
 
