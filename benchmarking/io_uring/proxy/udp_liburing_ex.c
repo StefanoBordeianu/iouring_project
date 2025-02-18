@@ -25,6 +25,7 @@ int coop = 0;
 int single = 0;
 int napi = 0;
 int napi_timeout = 0;
+int sink = 0;
 
 
 struct sendmsg_ctx {
@@ -334,9 +335,11 @@ static int process_cqe_recv(struct ctx *ctx, struct io_uring_cqe *cqe,
               .msg_iovlen = 1
       };
 
-      io_uring_prep_sendmsg(sqe, fdidx, &ctx->send[idx].msg, 0);
-      io_uring_sqe_set_data64(sqe, idx);
-      sqe->flags |= IOSQE_FIXED_FILE;
+      if(!sink) {
+            io_uring_prep_sendmsg(sqe, fdidx, &ctx->send[idx].msg, 0);
+            io_uring_sqe_set_data64(sqe, idx);
+            sqe->flags |= IOSQE_FIXED_FILE;
+      }
 
       return 0;
 }
@@ -399,6 +402,9 @@ int main(int argc, char *argv[])
                         break;
                   case 'd':
                         ctx.duration = atoi(optarg);
+                        break;
+                  case 'K':
+                        sink = 1;
                         break;
                   case 'h':
                         print_usage();
