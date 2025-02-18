@@ -322,6 +322,7 @@ static int process_cqe_recv(struct ctx *ctx, struct io_uring_cqe *cqe,
             sqe->flags |= IOSQE_FIXED_FILE;
       }
       else{
+            pkt_count++;
             recycle_buffer(ctx, idx);
       }
 
