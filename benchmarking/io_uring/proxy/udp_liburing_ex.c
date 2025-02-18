@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
       ctx.buf_shift = BUF_SHIFT;
       ctx.duration = 10;
 
-      while ((opt = getopt(argc, argv, "6vp:b:d:CSNn:h")) != -1) {
+      while ((opt = getopt(argc, argv, "6vp:b:d:CSNn:hK")) != -1) {
             switch (opt) {
                   case 'C':
                         coop = 1;
