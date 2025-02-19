@@ -33,6 +33,7 @@ int sink = 0;
 int report = 0;
 int sq_affinity = 0;
 int batch_info = 0;
+int waitcq=0;
 
 struct io_uring* ring;
 int start = 0;
@@ -66,7 +67,7 @@ void freemsg(struct msghdr * msg){
 int parse_arguments(int argc, char* argv[]){
       int opt;
 
-      while((opt =getopt(argc,argv,"hs:p:Bd:b:a:TACSDi:r:FPNn:k:KR")) != -1) {
+      while((opt =getopt(argc,argv,"hs:p:Bd:b:a:TACSDi:r:FPNn:k:KRw")) != -1) {
             switch (opt) {
                   case 'p':
                         starting_port = atoi(optarg);
@@ -113,6 +114,9 @@ int parse_arguments(int argc, char* argv[]){
                         break;
                   case 'N':
                         napi = 1;
+                        break;
+                  case 'w':
+                        waitcq=1;
                         break;
                   case 'n':
                         napi_timeout = atoi(optarg);
@@ -292,7 +296,7 @@ void start_loop(int* sockets){
             struct io_uring_cqe* cqe;
             struct __kernel_timespec *ts = &timespec;
 
-            if(sq_poll==0)
+            if(sq_poll==0 && waitcq==1)
                   r = io_uring_submit_and_wait_timeout(ring,&cqe,batching,ts,NULL);
             else{
                   io_uring_submit(ring);
