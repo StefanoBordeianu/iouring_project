@@ -296,7 +296,7 @@ void start_loop(int* sockets){
             struct io_uring_cqe* cqe;
             struct __kernel_timespec *ts = &timespec;
 
-            if(sq_poll==0 && waitcq==1)
+            if(waitcq==1)
                   r = io_uring_submit_and_wait_timeout(ring,&cqe,batching,ts,NULL);
             else{
                   io_uring_submit(ring);
