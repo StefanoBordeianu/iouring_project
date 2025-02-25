@@ -6,9 +6,8 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define DEST_IP "10.10.1.2"  // Destination IP address
-#define DEST_PORT 2020       // Destination UDP port
-#define BUFFER_SIZE 1450      // Size of the buffer to send
+#define DEST_IP "10.10.1.2"
+#define DEST_PORT 2020
 
 long pkts = 0;
 int sockfd;
@@ -24,12 +23,16 @@ void sig_handler(int signum){
 
 
 int main(int argc, char *argv[]){
-
+      int size;
       struct sockaddr_in dest_addr;
-      char buffer[BUFFER_SIZE];
+
       if(argc>=2)
             duration = atoi(argv[1]);
 
+      if(argc>=3)
+            size = atoi(argv[2]);
+
+      char buffer[size];
       signal(SIGALRM,sig_handler);
       sockfd = socket(AF_INET, SOCK_DGRAM, 0);
       if (sockfd < 0) {
