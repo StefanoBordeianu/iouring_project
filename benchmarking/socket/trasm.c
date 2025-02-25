@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
       while(1) {
             if(!start){
                   start = 1;
-                  alarm();
+                  alarm(duration);
             }
             ssize_t sent_bytes = sendto(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &dest_addr,
                                         sizeof(dest_addr));
