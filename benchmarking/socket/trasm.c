@@ -8,7 +8,7 @@
 
 #define DEST_IP "10.10.1.2"  // Destination IP address
 #define DEST_PORT 2020       // Destination UDP port
-#define BUFFER_SIZE 1500      // Size of the buffer to send
+#define BUFFER_SIZE 1450      // Size of the buffer to send
 
 long pkts = 0;
 int sockfd;
